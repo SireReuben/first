@@ -16,9 +16,10 @@ export default function WelcomeScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const [logoAnim] = useState(new Animated.Value(0));
-  const { isConnected } = useDeviceState();
+  const { isConnected, connectionAttempts } = useDeviceState();
   const { hasLocationPermission, hasNetworkAccess } = useNetworkPermissions();
   const [showManualConnect, setShowManualConnect] = useState(false);
+  const [hasTriedConnection, setHasTriedConnection] = useState(false);
   const { isTablet, isLandscape, screenType } = useDeviceOrientation();
 
   const canProceed = Platform.OS === 'web' || (hasLocationPermission && hasNetworkAccess);
@@ -47,23 +48,52 @@ export default function WelcomeScreen() {
         }),
       ])
     ]).start();
+  }, []);
 
-    // Show manual connect option after appropriate time based on platform and permissions
-    const delay = Platform.OS === 'web' ? 5000 : 8000;
-    const timer = setTimeout(() => {
-      if (!isConnected && canProceed) {
+  // Show manual connect option based on connection attempts and platform
+  useEffect(() => {
+    if (!canProceed) return;
+
+    let timer: NodeJS.Timeout;
+
+    if (Platform.OS === 'web') {
+      // For web, show manual connect after 5 seconds
+      timer = setTimeout(() => {
+        if (!isConnected) {
+          setShowManualConnect(true);
+          setHasTriedConnection(true);
+        }
+      }, 5000);
+    } else {
+      // For mobile, show manual connect after connection attempts or timeout
+      if (connectionAttempts >= 2 || hasTriedConnection) {
         setShowManualConnect(true);
+      } else {
+        timer = setTimeout(() => {
+          setHasTriedConnection(true);
+          if (!isConnected) {
+            setShowManualConnect(true);
+          }
+        }, 10000); // Longer timeout for mobile
       }
-    }, delay);
+    }
 
-    return () => clearTimeout(timer);
-  }, [isConnected, canProceed]);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isConnected, canProceed, connectionAttempts, hasTriedConnection]);
 
   // Auto-navigate when connected
   useEffect(() => {
     if (isConnected && canProceed) {
       const timer = setTimeout(() => {
-        router.replace('/(tabs)/sessions');
+        try {
+          router.replace('/(tabs)/sessions');
+        } catch (error) {
+          console.error('Navigation error:', error);
+          // Fallback navigation
+          setShowManualConnect(true);
+        }
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -71,9 +101,20 @@ export default function WelcomeScreen() {
 
   const handleManualConnect = () => {
     if (!canProceed) {
-      return; // This shouldn't happen due to NetworkPermissionGuard, but just in case
+      return;
     }
-    router.replace('/(tabs)/sessions');
+    
+    try {
+      router.replace('/(tabs)/sessions');
+    } catch (error) {
+      console.error('Manual navigation error:', error);
+      // If navigation fails, try again with push
+      try {
+        router.push('/(tabs)/sessions');
+      } catch (pushError) {
+        console.error('Push navigation also failed:', pushError);
+      }
+    }
   };
 
   const getLayoutStyle = () => {
@@ -96,7 +137,27 @@ export default function WelcomeScreen() {
       return 'Please connect to "AEROSPIN CONTROL" WiFi network';
     }
     
+    if (connectionAttempts > 0) {
+      return `Connection attempts: ${connectionAttempts}. Ensure device is powered on and WiFi is connected to "AEROSPIN CONTROL"`;
+    }
+    
     return 'Ensure your device WiFi is connected to "AEROSPIN CONTROL" network';
+  };
+
+  const getStatusMessage = () => {
+    if (!canProceed) {
+      return 'Setting up permissions...';
+    }
+    
+    if (isConnected) {
+      return 'Connected Successfully!';
+    }
+    
+    if (hasTriedConnection || connectionAttempts > 0) {
+      return 'Unable to auto-connect to device';
+    }
+    
+    return 'Searching for AEROSPIN device...';
   };
 
   return (
@@ -171,17 +232,39 @@ export default function WelcomeScreen() {
             ]}>
               <WifiStatus isConnected={isConnected} />
               
-              {!isConnected && !showManualConnect && canProceed && (
-                <LoadingSpinner isVisible={true} />
-              )}
+              {/* Connection Status */}
+              <View style={styles.statusContainer}>
+                <Text style={[
+                  styles.statusText,
+                  isTablet && styles.tabletStatusText
+                ]}>
+                  {getStatusMessage()}
+                </Text>
+                
+                {/* Show loading spinner while trying to connect */}
+                {!isConnected && !showManualConnect && canProceed && (
+                  <LoadingSpinner isVisible={true} />
+                )}
+                
+                {/* Show connection details */}
+                {(connectionAttempts > 0 || !canProceed) && (
+                  <Text style={[
+                    styles.detailText,
+                    isTablet && styles.tabletDetailText
+                  ]}>
+                    {getConnectionMessage()}
+                  </Text>
+                )}
+              </View>
               
+              {/* Success message when connected */}
               {isConnected && (
                 <Animated.View style={styles.successMessage}>
                   <Text style={[
                     styles.successText,
                     isTablet && styles.tabletSuccessText
                   ]}>
-                    Connected Successfully!
+                    Device Ready!
                   </Text>
                   <Text style={[
                     styles.loadingText,
@@ -192,19 +275,21 @@ export default function WelcomeScreen() {
                 </Animated.View>
               )}
 
+              {/* Manual connect option */}
               {!isConnected && showManualConnect && canProceed && (
                 <View style={styles.manualConnectContainer}>
                   <Text style={[
                     styles.manualConnectText,
                     isTablet && styles.tabletManualConnectText
                   ]}>
-                    Unable to auto-connect to device
+                    Continue without device connection
                   </Text>
                   <Text style={[
                     styles.manualConnectSubtext,
                     isTablet && styles.tabletManualConnectSubtext
                   ]}>
-                    {getConnectionMessage()}
+                    You can start a session and connect to the device later. 
+                    The app will work in offline mode until a connection is established.
                   </Text>
                   <TouchableOpacity 
                     style={[
@@ -283,10 +368,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 20,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
     elevation: 8,
   },
   tabletLogoContainer: {
@@ -346,6 +428,35 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 48,
   },
+  statusContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  statusText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  tabletStatusText: {
+    fontSize: 20,
+    marginBottom: 12,
+  },
+  detailText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#e0f2fe',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  tabletDetailText: {
+    fontSize: 16,
+    paddingHorizontal: 40,
+    lineHeight: 24,
+  },
   successMessage: {
     alignItems: 'center',
     marginTop: 24,
@@ -371,6 +482,7 @@ const styles = StyleSheet.create({
   manualConnectContainer: {
     alignItems: 'center',
     marginTop: 24,
+    paddingHorizontal: 20,
   },
   manualConnectText: {
     fontSize: 16,
@@ -389,12 +501,12 @@ const styles = StyleSheet.create({
     color: '#e0f2fe',
     textAlign: 'center',
     marginBottom: 24,
-    paddingHorizontal: 20,
+    lineHeight: 20,
   },
   tabletManualConnectSubtext: {
-    fontSize: 18,
+    fontSize: 16,
     marginBottom: 32,
-    paddingHorizontal: 40,
+    lineHeight: 24,
   },
   manualConnectButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',

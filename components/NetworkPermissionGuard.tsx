@@ -18,6 +18,7 @@ export function NetworkPermissionGuard({ children }: NetworkPermissionGuardProps
   } = useNetworkPermissions();
 
   const [showPermissionScreen, setShowPermissionScreen] = useState(false);
+  const [isRequestingPermissions, setIsRequestingPermissions] = useState(false);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -31,12 +32,27 @@ export function NetworkPermissionGuard({ children }: NetworkPermissionGuardProps
   }, [hasLocationPermission, isLocationEnabled, hasNetworkAccess]);
 
   const handleRequestPermissions = async () => {
-    const granted = await requestPermissions();
-    if (granted) {
-      const networkOk = await checkNetworkConnection();
-      if (networkOk) {
-        setShowPermissionScreen(false);
+    if (isRequestingPermissions) return;
+    
+    setIsRequestingPermissions(true);
+    
+    try {
+      const granted = await requestPermissions();
+      if (granted) {
+        const networkOk = await checkNetworkConnection();
+        if (networkOk) {
+          setShowPermissionScreen(false);
+        }
       }
+    } catch (error) {
+      console.error('Permission request failed:', error);
+      Alert.alert(
+        'Permission Error',
+        'Failed to request permissions. Please try again or grant permissions manually in device settings.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsRequestingPermissions(false);
     }
   };
 
@@ -50,6 +66,20 @@ export function NetworkPermissionGuard({ children }: NetworkPermissionGuardProps
       '4. Return to this app\n\n' +
       'Note: On Android 10+, location permission is required to scan for Wi-Fi networks.',
       [{ text: 'OK' }]
+    );
+  };
+
+  const handleSkipPermissions = () => {
+    Alert.alert(
+      'Skip Permissions',
+      'You can continue without permissions, but device detection may not work properly. You can manually connect to the AEROSPIN device later.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Continue Anyway', 
+          onPress: () => setShowPermissionScreen(false)
+        }
+      ]
     );
   };
 
@@ -102,12 +132,12 @@ export function NetworkPermissionGuard({ children }: NetworkPermissionGuardProps
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={[styles.primaryButton, isRequestingPermissions && styles.disabledButton]}
             onPress={handleRequestPermissions}
-            disabled={permissionStatus === 'checking'}
+            disabled={isRequestingPermissions}
           >
             <Text style={styles.primaryButtonText}>
-              {permissionStatus === 'checking' ? 'Checking...' : 'Grant Permissions'}
+              {isRequestingPermissions ? 'Requesting...' : 'Grant Permissions'}
             </Text>
           </TouchableOpacity>
 
@@ -116,6 +146,13 @@ export function NetworkPermissionGuard({ children }: NetworkPermissionGuardProps
             onPress={handleNetworkHelp}
           >
             <Text style={styles.secondaryButtonText}>Connection Help</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={handleSkipPermissions}
+          >
+            <Text style={styles.skipButtonText}>Continue Without Permissions</Text>
           </TouchableOpacity>
         </View>
 
@@ -141,10 +178,7 @@ const styles = StyleSheet.create({
     margin: 16,
     maxWidth: 400,
     width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     elevation: 4,
   },
   iconContainer: {
@@ -226,6 +260,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
+  disabledButton: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.6,
+  },
   primaryButtonText: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
@@ -242,6 +280,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#374151',
+  },
+  skipButton: {
+    backgroundColor: '#fef2f2',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  skipButtonText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#dc2626',
   },
   footerText: {
     fontSize: 12,

@@ -63,27 +63,39 @@ export function useNetworkPermissions(): NetworkPermissions {
     setPermissionStatus('checking');
 
     try {
-      // Check if location services are enabled
+      // Check if location services are enabled first
       const servicesEnabled = await Location.hasServicesEnabledAsync();
       if (!servicesEnabled) {
+        setPermissionStatus('denied');
+        setIsLocationEnabled(false);
+        
         Alert.alert(
           'Location Services Required',
           'Please enable Location Services in your device settings to connect to AEROSPIN device. This is required by Android to scan for Wi-Fi networks.',
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() }
+            { 
+              text: 'Open Settings', 
+              onPress: () => {
+                try {
+                  Linking.openSettings();
+                } catch (error) {
+                  console.error('Failed to open settings:', error);
+                }
+              }
+            }
           ]
         );
-        setPermissionStatus('denied');
         return false;
       }
+
+      setIsLocationEnabled(true);
 
       // Request location permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       
       if (status === 'granted') {
         setHasLocationPermission(true);
-        setIsLocationEnabled(true);
         setPermissionStatus('granted');
         
         // Also check network access
@@ -91,27 +103,65 @@ export function useNetworkPermissions(): NetworkPermissions {
         
         return true;
       } else {
+        setHasLocationPermission(false);
+        setPermissionStatus('denied');
+        
         Alert.alert(
           'Permission Required',
           'Location permission is required to detect and connect to AEROSPIN device Wi-Fi network. This is a requirement on Android 10+ for Wi-Fi scanning.',
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() }
+            { 
+              text: 'Open Settings', 
+              onPress: () => {
+                try {
+                  Linking.openSettings();
+                } catch (error) {
+                  console.error('Failed to open settings:', error);
+                }
+              }
+            }
           ]
         );
-        setPermissionStatus('denied');
         return false;
       }
     } catch (error) {
       console.error('Error requesting permissions:', error);
       setPermissionStatus('denied');
+      setHasLocationPermission(false);
+      
+      Alert.alert(
+        'Permission Error',
+        'Failed to request location permission. Please grant location permission manually in device settings.',
+        [
+          { text: 'OK' },
+          { 
+            text: 'Open Settings', 
+            onPress: () => {
+              try {
+                Linking.openSettings();
+              } catch (settingsError) {
+                console.error('Failed to open settings:', settingsError);
+              }
+            }
+          }
+        ]
+      );
       return false;
     }
   };
 
   useEffect(() => {
-    checkLocationPermission();
-    checkNetworkConnection();
+    const initializePermissions = async () => {
+      try {
+        await checkLocationPermission();
+        await checkNetworkConnection();
+      } catch (error) {
+        console.error('Failed to initialize permissions:', error);
+      }
+    };
+
+    initializePermissions();
   }, []);
 
   return {
