@@ -51,7 +51,10 @@ export default function SessionsScreen() {
           <ResponsiveContainer>
             <View style={getLayoutStyle()}>
               <View style={isTablet && isLandscape ? styles.leftColumn : null}>
-                <StatusHeader /><ConnectionStatus isConnected={isConnected} />{!isConnected && <OfflineNotice />}<View style={[
+                <StatusHeader />
+                <ConnectionStatus isConnected={isConnected} />
+                {!isConnected && <OfflineNotice />}
+                <View style={[
                   styles.card,
                   isTablet && styles.tabletCard
                 ]}>
@@ -73,7 +76,8 @@ export default function SessionsScreen() {
                     onEndSession={handleEndSession}
                     isConnected={isConnected}
                   />
-                </View>{!deviceState.sessionActive && (
+                </View>
+                {!deviceState.sessionActive && (
                   <View style={[
                     styles.infoCard,
                     isTablet && styles.tabletInfoCard
