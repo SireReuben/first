@@ -104,7 +104,6 @@ export default function SessionsScreen() {
                   </View>
                 )}
               </View>
-
               <View style={isTablet && isLandscape ? styles.rightColumn : null}>
                 {deviceState.sessionActive && (
                   <SessionReport sessionData={sessionData} />
