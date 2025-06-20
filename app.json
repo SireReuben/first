@@ -24,7 +24,18 @@
         "foregroundImage": "./assets/images/Aerospin-1-300x200.png",
         "backgroundColor": "#1e3a8a"
       },
-      "package": "com.aerospin.control"
+      "package": "com.aerospin.control",
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.CHANGE_WIFI_STATE",
+        "android.permission.NEARBY_WIFI_DEVICES",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.INTERNET"
+      ],
+      "usesCleartextTraffic": true,
+      "networkSecurityConfig": "@xml/network_security_config"
     },
     "web": {
       "bundler": "metro",
@@ -34,7 +45,13 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "This app needs access to location to detect and connect to AEROSPIN device Wi-Fi network."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

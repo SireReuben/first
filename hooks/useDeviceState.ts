@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
+import * as Network from 'expo-network';
 
 interface DeviceState {
   direction: string;
@@ -14,8 +15,10 @@ interface SessionData {
   events: string[];
 }
 
-// Use proxy for web, direct IP for native platforms
+// Enhanced connection logic for Android
 const ARDUINO_BASE_URL = Platform.OS === 'web' ? '/api' : 'http://192.168.4.1';
+const CONNECTION_TIMEOUT = 5000;
+const MAX_RETRY_ATTEMPTS = 3;
 
 export function useDeviceState() {
   const [deviceState, setDeviceState] = useState<DeviceState>({
@@ -26,6 +29,8 @@ export function useDeviceState() {
   });
 
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [lastConnectionCheck, setLastConnectionCheck] = useState<Date | null>(null);
   const [sessionData, setSessionData] = useState<SessionData>({
     startTime: '',
     duration: '',
@@ -35,37 +40,81 @@ export function useDeviceState() {
   // Store brake position before reset/emergency stop
   const [previousBrakePosition, setPreviousBrakePosition] = useState<string>('None');
 
-  // Memoized connection check to prevent unnecessary re-renders
-  const checkConnection = useCallback(async () => {
+  // Enhanced connection check with better error handling
+  const checkConnection = useCallback(async (retryCount = 0): Promise<boolean> => {
     try {
+      // First check if we have network connectivity
+      const networkState = await Network.getNetworkStateAsync();
+      if (!networkState.isConnected) {
+        setIsConnected(false);
+        return false;
+      }
+
+      // Check if we're on the right network (Android specific)
+      if (Platform.OS === 'android') {
+        try {
+          const ipAddress = await Network.getIpAddressAsync();
+          // Check if we're on the Arduino's network (192.168.4.x)
+          if (!ipAddress.startsWith('192.168.4.')) {
+            console.log('Not connected to AEROSPIN network. Current IP:', ipAddress);
+            setIsConnected(false);
+            return false;
+          }
+        } catch (error) {
+          console.log('Could not determine IP address:', error);
+        }
+      }
+
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), CONNECTION_TIMEOUT);
       
       const response = await fetch(`${ARDUINO_BASE_URL}/ping`, {
         method: 'GET',
         signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
       });
       
       clearTimeout(timeoutId);
       
       if (response.ok) {
         setIsConnected(true);
+        setConnectionAttempts(0);
+        setLastConnectionCheck(new Date());
         await fetchDeviceStatus();
+        return true;
       } else {
-        setIsConnected(false);
+        throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
+      console.log(`Connection attempt ${retryCount + 1} failed:`, error);
+      
+      if (retryCount < MAX_RETRY_ATTEMPTS) {
+        // Exponential backoff for retries
+        const delay = Math.pow(2, retryCount) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return checkConnection(retryCount + 1);
+      }
+      
       setIsConnected(false);
+      setConnectionAttempts(prev => prev + 1);
+      return false;
     }
   }, []);
 
   const fetchDeviceStatus = useCallback(async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), CONNECTION_TIMEOUT);
       
       const response = await fetch(`${ARDUINO_BASE_URL}/status`, {
         signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
       });
       
       clearTimeout(timeoutId);
@@ -75,38 +124,46 @@ export function useDeviceState() {
         parseDeviceStatus(statusText);
       }
     } catch (error) {
-      // Silent fail for offline operation
+      console.log('Failed to fetch device status:', error);
     }
   }, []);
 
-  // Connection monitoring with optimized intervals
+  // Enhanced connection monitoring
   useEffect(() => {
     let connectionCheckInterval: NodeJS.Timeout;
     let isComponentMounted = true;
 
-    // Initial connection check with delay
-    const initialCheck = setTimeout(() => {
-      if (isComponentMounted) {
-        checkConnection();
-      }
-    }, 1000);
+    const startConnectionMonitoring = async () => {
+      if (!isComponentMounted) return;
 
-    // Set up periodic connection monitoring
-    const startPeriodicChecks = setTimeout(() => {
-      if (isComponentMounted) {
-        connectionCheckInterval = setInterval(checkConnection, 15000);
-      }
-    }, 5000);
+      // Initial connection check with delay
+      setTimeout(async () => {
+        if (isComponentMounted) {
+          await checkConnection();
+        }
+      }, 2000);
+
+      // Set up periodic connection monitoring with adaptive intervals
+      setTimeout(() => {
+        if (isComponentMounted) {
+          connectionCheckInterval = setInterval(async () => {
+            if (isComponentMounted) {
+              await checkConnection();
+            }
+          }, isConnected ? 20000 : 10000); // Check less frequently when connected
+        }
+      }, 5000);
+    };
+
+    startConnectionMonitoring();
 
     return () => {
       isComponentMounted = false;
-      clearTimeout(initialCheck);
-      clearTimeout(startPeriodicChecks);
       if (connectionCheckInterval) {
         clearInterval(connectionCheckInterval);
       }
     };
-  }, [checkConnection]);
+  }, [checkConnection, isConnected]);
 
   // Session data updates with optimized intervals
   useEffect(() => {
@@ -133,10 +190,14 @@ export function useDeviceState() {
 
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          const timeoutId = setTimeout(() => controller.abort(), CONNECTION_TIMEOUT);
           
           const response = await fetch(`${ARDUINO_BASE_URL}/getSessionLog`, {
             signal: controller.signal,
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+            },
           });
           
           clearTimeout(timeoutId);
@@ -151,11 +212,11 @@ export function useDeviceState() {
             }));
           }
         } catch (error) {
-          // Silent fail for offline operation
+          console.log('Failed to fetch session log:', error);
         }
       };
 
-      sessionInterval = setInterval(fetchSessionLog, 10000);
+      sessionInterval = setInterval(fetchSessionLog, 15000);
     }
 
     return () => {
@@ -194,7 +255,7 @@ export function useDeviceState() {
     }));
   }, []);
 
-  const sendArduinoCommand = useCallback(async (endpoint: string, timeout: number = 3000) => {
+  const sendArduinoCommand = useCallback(async (endpoint: string, timeout: number = CONNECTION_TIMEOUT) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     
@@ -202,6 +263,10 @@ export function useDeviceState() {
       const response = await fetch(`${ARDUINO_BASE_URL}${endpoint}`, {
         method: 'GET',
         signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
       });
       
       clearTimeout(timeoutId);
@@ -236,6 +301,7 @@ export function useDeviceState() {
     }
 
     if (!isConnected) {
+      addSessionEvent('Operating in offline mode - changes saved locally');
       return;
     }
 
@@ -254,7 +320,7 @@ export function useDeviceState() {
         await sendArduinoCommand(`/speed?value=${updates.speed}`);
       }
     } catch (error) {
-      console.log('Device update failed, continuing in offline mode');
+      console.log('Device update failed, continuing in offline mode:', error);
       addSessionEvent('Device communication lost - operating offline');
     }
   }, [deviceState, isConnected, sendArduinoCommand, addSessionEvent]);
@@ -447,6 +513,8 @@ export function useDeviceState() {
     deviceState,
     isConnected,
     sessionData,
+    connectionAttempts,
+    lastConnectionCheck,
     updateDeviceState,
     startSession,
     endSession,
@@ -454,5 +522,6 @@ export function useDeviceState() {
     emergencyStop,
     releaseBrake,
     previousBrakePosition,
+    checkConnection,
   };
 }

@@ -5,8 +5,10 @@ import { router } from 'expo-router';
 import { WifiStatus } from '@/components/WifiStatus';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ResponsiveContainer } from '@/components/ResponsiveContainer';
+import { NetworkPermissionGuard } from '@/components/NetworkPermissionGuard';
 import { useDeviceState } from '@/hooks/useDeviceState';
 import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
+import { useNetworkPermissions } from '@/hooks/useNetworkPermissions';
 
 const { width, height } = Dimensions.get('window');
 
@@ -15,8 +17,11 @@ export default function WelcomeScreen() {
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const [logoAnim] = useState(new Animated.Value(0));
   const { isConnected } = useDeviceState();
+  const { hasLocationPermission, hasNetworkAccess } = useNetworkPermissions();
   const [showManualConnect, setShowManualConnect] = useState(false);
   const { isTablet, isLandscape, screenType } = useDeviceOrientation();
+
+  const canProceed = Platform.OS === 'web' || (hasLocationPermission && hasNetworkAccess);
 
   useEffect(() => {
     // Start welcome animation sequence immediately
@@ -43,28 +48,31 @@ export default function WelcomeScreen() {
       ])
     ]).start();
 
-    // Show manual connect option after appropriate time based on platform
+    // Show manual connect option after appropriate time based on platform and permissions
     const delay = Platform.OS === 'web' ? 5000 : 8000;
     const timer = setTimeout(() => {
-      if (!isConnected) {
+      if (!isConnected && canProceed) {
         setShowManualConnect(true);
       }
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [isConnected]);
+  }, [isConnected, canProceed]);
 
   // Auto-navigate when connected
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && canProceed) {
       const timer = setTimeout(() => {
         router.replace('/(tabs)/sessions');
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isConnected]);
+  }, [isConnected, canProceed]);
 
   const handleManualConnect = () => {
+    if (!canProceed) {
+      return; // This shouldn't happen due to NetworkPermissionGuard, but just in case
+    }
     router.replace('/(tabs)/sessions');
   };
 
@@ -75,153 +83,168 @@ export default function WelcomeScreen() {
     return null;
   };
 
+  const getConnectionMessage = () => {
+    if (Platform.OS === 'web') {
+      return 'Make sure you\'re connected to "AEROSPIN CONTROL" WiFi network';
+    }
+    
+    if (!hasLocationPermission) {
+      return 'Location permission required to scan for Wi-Fi networks';
+    }
+    
+    if (!hasNetworkAccess) {
+      return 'Please connect to "AEROSPIN CONTROL" WiFi network';
+    }
+    
+    return 'Ensure your device WiFi is connected to "AEROSPIN CONTROL" network';
+  };
+
   return (
-    <LinearGradient
-      colors={['#1e3a8a', '#3b82f6', '#60a5fa']}
-      style={styles.container}
-    >
-      <ResponsiveContainer style={styles.responsiveContainer}>
-        <Animated.View
-          style={[
-            styles.content,
-            getLayoutStyle(),
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        >
-          <View style={[
-            styles.header,
-            isTablet && isLandscape && styles.tabletLandscapeHeader
-          ]}>
-            <Animated.View 
-              style={[
-                styles.logoContainer,
-                isTablet && styles.tabletLogoContainer,
-                {
-                  opacity: logoAnim,
-                  transform: [{
-                    scale: logoAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.5, 1],
-                    })
-                  }]
-                }
-              ]}
-            >
-              <Image 
-                source={require('@/assets/images/Aerospin-1-300x200.png')}
+    <NetworkPermissionGuard>
+      <LinearGradient
+        colors={['#1e3a8a', '#3b82f6', '#60a5fa']}
+        style={styles.container}
+      >
+        <ResponsiveContainer style={styles.responsiveContainer}>
+          <Animated.View
+            style={[
+              styles.content,
+              getLayoutStyle(),
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+              },
+            ]}
+          >
+            <View style={[
+              styles.header,
+              isTablet && isLandscape && styles.tabletLandscapeHeader
+            ]}>
+              <Animated.View 
                 style={[
-                  styles.logo,
-                  isTablet && styles.tabletLogo
-                ]}
-                resizeMode="contain"
-              />
-            </Animated.View>
-            
-            <Text style={[
-              styles.title,
-              isTablet && styles.tabletTitle
-            ]}>
-              Welcome to
-            </Text>
-            <Text style={[
-              styles.brand,
-              isTablet && styles.tabletBrand
-            ]}>
-              AEROSPIN
-            </Text>
-            <Text style={[
-              styles.subtitle,
-              isTablet && styles.tabletSubtitle
-            ]}>
-              CONTROL SYSTEM
-            </Text>
-          </View>
-
-          <View style={[
-            styles.middle,
-            isTablet && isLandscape && styles.tabletLandscapeMiddle
-          ]}>
-            <WifiStatus isConnected={isConnected} />
-            
-            {!isConnected && !showManualConnect && (
-              <LoadingSpinner isVisible={true} />
-            )}
-            
-            {isConnected && (
-              <Animated.View style={styles.successMessage}>
-                <Text style={[
-                  styles.successText,
-                  isTablet && styles.tabletSuccessText
-                ]}>
-                  Connected Successfully!
-                </Text>
-                <Text style={[
-                  styles.loadingText,
-                  isTablet && styles.tabletLoadingText
-                ]}>
-                  Loading Session Manager...
-                </Text>
-              </Animated.View>
-            )}
-
-            {!isConnected && showManualConnect && (
-              <View style={styles.manualConnectContainer}>
-                <Text style={[
-                  styles.manualConnectText,
-                  isTablet && styles.tabletManualConnectText
-                ]}>
-                  Unable to auto-connect to device
-                </Text>
-                <Text style={[
-                  styles.manualConnectSubtext,
-                  isTablet && styles.tabletManualConnectSubtext
-                ]}>
-                  {Platform.OS === 'web' 
-                    ? 'Make sure you\'re connected to "AEROSPIN CONTROL" WiFi network'
-                    : 'Ensure your device WiFi is connected to "AEROSPIN CONTROL" network'
+                  styles.logoContainer,
+                  isTablet && styles.tabletLogoContainer,
+                  {
+                    opacity: logoAnim,
+                    transform: [{
+                      scale: logoAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.5, 1],
+                      })
+                    }]
                   }
-                </Text>
-                <TouchableOpacity 
+                ]}
+              >
+                <Image 
+                  source={require('@/assets/images/Aerospin-1-300x200.png')}
                   style={[
-                    styles.manualConnectButton,
-                    isTablet && styles.tabletManualConnectButton
+                    styles.logo,
+                    isTablet && styles.tabletLogo
                   ]}
-                  onPress={handleManualConnect}
-                >
-                  <Text style={[
-                    styles.manualConnectButtonText,
-                    isTablet && styles.tabletManualConnectButtonText
-                  ]}>
-                    Continue Anyway
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
+                  resizeMode="contain"
+                />
+              </Animated.View>
+              
+              <Text style={[
+                styles.title,
+                isTablet && styles.tabletTitle
+              ]}>
+                Welcome to
+              </Text>
+              <Text style={[
+                styles.brand,
+                isTablet && styles.tabletBrand
+              ]}>
+                AEROSPIN
+              </Text>
+              <Text style={[
+                styles.subtitle,
+                isTablet && styles.tabletSubtitle
+              ]}>
+                CONTROL SYSTEM
+              </Text>
+            </View>
 
-          <View style={[
-            styles.footer,
-            isTablet && isLandscape && styles.tabletLandscapeFooter
-          ]}>
-            <Text style={[
-              styles.tagline,
-              isTablet && styles.tabletTagline
+            <View style={[
+              styles.middle,
+              isTablet && isLandscape && styles.tabletLandscapeMiddle
             ]}>
-              REVOLUTIONIZING CONNECTIVITY,
-            </Text>
-            <Text style={[
-              styles.tagline,
-              isTablet && styles.tabletTagline
+              <WifiStatus isConnected={isConnected} />
+              
+              {!isConnected && !showManualConnect && canProceed && (
+                <LoadingSpinner isVisible={true} />
+              )}
+              
+              {isConnected && (
+                <Animated.View style={styles.successMessage}>
+                  <Text style={[
+                    styles.successText,
+                    isTablet && styles.tabletSuccessText
+                  ]}>
+                    Connected Successfully!
+                  </Text>
+                  <Text style={[
+                    styles.loadingText,
+                    isTablet && styles.tabletLoadingText
+                  ]}>
+                    Loading Session Manager...
+                  </Text>
+                </Animated.View>
+              )}
+
+              {!isConnected && showManualConnect && canProceed && (
+                <View style={styles.manualConnectContainer}>
+                  <Text style={[
+                    styles.manualConnectText,
+                    isTablet && styles.tabletManualConnectText
+                  ]}>
+                    Unable to auto-connect to device
+                  </Text>
+                  <Text style={[
+                    styles.manualConnectSubtext,
+                    isTablet && styles.tabletManualConnectSubtext
+                  ]}>
+                    {getConnectionMessage()}
+                  </Text>
+                  <TouchableOpacity 
+                    style={[
+                      styles.manualConnectButton,
+                      isTablet && styles.tabletManualConnectButton
+                    ]}
+                    onPress={handleManualConnect}
+                  >
+                    <Text style={[
+                      styles.manualConnectButtonText,
+                      isTablet && styles.tabletManualConnectButtonText
+                    ]}>
+                      Continue Anyway
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            <View style={[
+              styles.footer,
+              isTablet && isLandscape && styles.tabletLandscapeFooter
             ]}>
-              ONE FIBER AT A TIME.
-            </Text>
-          </View>
-        </Animated.View>
-      </ResponsiveContainer>
-    </LinearGradient>
+              <Text style={[
+                styles.tagline,
+                isTablet && styles.tabletTagline
+              ]}>
+                REVOLUTIONIZING CONNECTIVITY,
+              </Text>
+              <Text style={[
+                styles.tagline,
+                isTablet && styles.tabletTagline
+              ]}>
+                ONE FIBER AT A TIME.
+              </Text>
+            </View>
+          </Animated.View>
+        </ResponsiveContainer>
+      </LinearGradient>
+    </NetworkPermissionGuard>
   );
 }
 
