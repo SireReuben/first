@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert as RNAlert } from 'react-native';
-import { CheckCircle, AlertTriangle, XCircle, Info, Trash2, Eye, EyeOff } from 'lucide-react-native';
+import { CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Circle as XCircle, Info, Trash2, Eye, EyeOff } from 'lucide-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 interface Alert {
