@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { ArrowUp, ArrowDown, Square, TriangleAlert as AlertTriangle, Minus, Plus } from 'lucide-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 
 interface DeviceState {
   direction: string;
@@ -29,6 +30,7 @@ export function DeviceControls({
 }: DeviceControlsProps) {
   const [sliderValue, setSliderValue] = useState(deviceState.speed);
   const speedBarWidth = useSharedValue(deviceState.speed);
+  const { isTablet, isLandscape, screenType } = useDeviceOrientation();
 
   const animatedSpeedBarStyle = useAnimatedStyle(() => {
     return {
@@ -171,152 +173,279 @@ export function DeviceControls({
     speedBarWidth.value = deviceState.speed;
   }, [deviceState.speed]);
 
+  const getControlSectionLayout = () => {
+    if (isTablet && isLandscape && screenType !== 'phone') {
+      return styles.tabletLandscapeControlSection;
+    }
+    return null;
+  };
+
+  const getButtonRowLayout = () => {
+    if (isTablet) {
+      return styles.tabletButtonRow;
+    }
+    return null;
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Device Controls</Text>
+    <View style={[
+      styles.container,
+      isTablet && styles.tabletContainer
+    ]}>
+      <Text style={[
+        styles.sectionTitle,
+        isTablet && styles.tabletSectionTitle
+      ]}>
+        Device Controls
+      </Text>
       
       {/* Emergency Controls */}
-      <View style={styles.emergencySection}>
+      <View style={[
+        styles.emergencySection,
+        isTablet && styles.tabletEmergencySection
+      ]}>
         <TouchableOpacity
-          style={[styles.emergencyButton, disabled && styles.disabledButton]}
+          style={[
+            styles.emergencyButton,
+            isTablet && styles.tabletEmergencyButton,
+            disabled && styles.disabledButton
+          ]}
           onPress={handleEmergencyStop}
           disabled={disabled}
         >
-          <Square size={24} color="#ffffff" />
-          <Text style={styles.emergencyButtonText}>EMERGENCY STOP</Text>
+          <Square size={isTablet ? 28 : 24} color="#ffffff" />
+          <Text style={[
+            styles.emergencyButtonText,
+            isTablet && styles.tabletEmergencyButtonText
+          ]}>
+            EMERGENCY STOP
+          </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={[styles.resetButton, disabled && styles.disabledButton]}
+          style={[
+            styles.resetButton,
+            isTablet && styles.tabletResetButton,
+            disabled && styles.disabledButton
+          ]}
           onPress={handleReset}
           disabled={disabled}
         >
-          <AlertTriangle size={20} color="#ffffff" />
-          <Text style={styles.resetButtonText}>RESET DEVICE</Text>
+          <AlertTriangle size={isTablet ? 24 : 20} color="#ffffff" />
+          <Text style={[
+            styles.resetButtonText,
+            isTablet && styles.tabletResetButtonText
+          ]}>
+            RESET DEVICE
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* Brake Position Info */}
       {deviceState.brake !== 'None' && (
-        <View style={styles.brakeInfoSection}>
-          <Text style={styles.brakeInfoText}>
+        <View style={[
+          styles.brakeInfoSection,
+          isTablet && styles.tabletBrakeInfoSection
+        ]}>
+          <Text style={[
+            styles.brakeInfoText,
+            isTablet && styles.tabletBrakeInfoText
+          ]}>
             Current brake position: <Text style={styles.brakeInfoValue}>{deviceState.brake}</Text>
           </Text>
-          <Text style={styles.brakeInfoSubtext}>
+          <Text style={[
+            styles.brakeInfoSubtext,
+            isTablet && styles.tabletBrakeInfoSubtext
+          ]}>
             This position will be preserved during reset and emergency stop operations
           </Text>
         </View>
       )}
       
-      {/* Direction Controls */}
-      <View style={styles.controlSection}>
-        <Text style={styles.controlLabel}>Motor Direction</Text>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={[
-              styles.controlButton,
-              styles.directionButton,
-              deviceState.direction === 'Forward' && styles.activeButton,
-              disabled && styles.disabledButton,
-            ]}
-            onPress={() => handleDirectionChange('Forward')}
-            disabled={disabled}
-          >
-            <ArrowUp size={20} color="#ffffff" />
-            <Text style={styles.buttonText}>Forward</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.controlButton,
-              styles.directionButton,
-              deviceState.direction === 'Reverse' && styles.activeButton,
-              disabled && styles.disabledButton,
-            ]}
-            onPress={() => handleDirectionChange('Reverse')}
-            disabled={disabled}
-          >
-            <ArrowDown size={20} color="#ffffff" />
-            <Text style={styles.buttonText}>Reverse</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Brake Controls */}
-      <View style={styles.controlSection}>
-        <Text style={styles.controlLabel}>Brake Control</Text>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={[
-              styles.controlButton,
-              styles.brakeButton,
-              deviceState.brake === 'Pull' && styles.activeBrakeButton,
-              disabled && styles.disabledButton,
-            ]}
-            onPress={() => handleBrakeChange('Pull')}
-            disabled={disabled}
-          >
-            <Text style={styles.buttonText}>
-              {deviceState.brake === 'Pull' ? 'Release Pull' : 'Pull Brake'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.controlButton,
-              styles.brakeButton,
-              deviceState.brake === 'Push' && styles.activeBrakeButton,
-              disabled && styles.disabledButton,
-            ]}
-            onPress={() => handleBrakeChange('Push')}
-            disabled={disabled}
-          >
-            <Text style={styles.buttonText}>
-              {deviceState.brake === 'Push' ? 'Release Push' : 'Push Brake'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        
-        {/* Release Brake Button */}
-        {deviceState.brake !== 'None' && (
-          <View style={styles.releaseButtonContainer}>
+      <View style={getControlSectionLayout()}>
+        {/* Direction Controls */}
+        <View style={[
+          styles.controlSection,
+          isTablet && styles.tabletControlSection
+        ]}>
+          <Text style={[
+            styles.controlLabel,
+            isTablet && styles.tabletControlLabel
+          ]}>
+            Motor Direction
+          </Text>
+          <View style={[styles.buttonRow, getButtonRowLayout()]}>
             <TouchableOpacity
-              style={[styles.releaseBrakeButton, disabled && styles.disabledButton]}
-              onPress={handleReleaseBrake}
+              style={[
+                styles.controlButton,
+                styles.directionButton,
+                isTablet && styles.tabletControlButton,
+                deviceState.direction === 'Forward' && styles.activeButton,
+                disabled && styles.disabledButton,
+              ]}
+              onPress={() => handleDirectionChange('Forward')}
               disabled={disabled}
             >
-              <Text style={styles.releaseBrakeButtonText}>Release Brake</Text>
+              <ArrowUp size={isTablet ? 24 : 20} color="#ffffff" />
+              <Text style={[
+                styles.buttonText,
+                isTablet && styles.tabletButtonText
+              ]}>
+                Forward
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.controlButton,
+                styles.directionButton,
+                isTablet && styles.tabletControlButton,
+                deviceState.direction === 'Reverse' && styles.activeButton,
+                disabled && styles.disabledButton,
+              ]}
+              onPress={() => handleDirectionChange('Reverse')}
+              disabled={disabled}
+            >
+              <ArrowDown size={isTablet ? 24 : 20} color="#ffffff" />
+              <Text style={[
+                styles.buttonText,
+                isTablet && styles.tabletButtonText
+              ]}>
+                Reverse
+              </Text>
             </TouchableOpacity>
           </View>
-        )}
+        </View>
+
+        {/* Brake Controls */}
+        <View style={[
+          styles.controlSection,
+          isTablet && styles.tabletControlSection
+        ]}>
+          <Text style={[
+            styles.controlLabel,
+            isTablet && styles.tabletControlLabel
+          ]}>
+            Brake Control
+          </Text>
+          <View style={[styles.buttonRow, getButtonRowLayout()]}>
+            <TouchableOpacity
+              style={[
+                styles.controlButton,
+                styles.brakeButton,
+                isTablet && styles.tabletControlButton,
+                deviceState.brake === 'Pull' && styles.activeBrakeButton,
+                disabled && styles.disabledButton,
+              ]}
+              onPress={() => handleBrakeChange('Pull')}
+              disabled={disabled}
+            >
+              <Text style={[
+                styles.buttonText,
+                isTablet && styles.tabletButtonText
+              ]}>
+                {deviceState.brake === 'Pull' ? 'Release Pull' : 'Pull Brake'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.controlButton,
+                styles.brakeButton,
+                isTablet && styles.tabletControlButton,
+                deviceState.brake === 'Push' && styles.activeBrakeButton,
+                disabled && styles.disabledButton,
+              ]}
+              onPress={() => handleBrakeChange('Push')}
+              disabled={disabled}
+            >
+              <Text style={[
+                styles.buttonText,
+                isTablet && styles.tabletButtonText
+              ]}>
+                {deviceState.brake === 'Push' ? 'Release Push' : 'Push Brake'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Release Brake Button */}
+          {deviceState.brake !== 'None' && (
+            <View style={styles.releaseButtonContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.releaseBrakeButton,
+                  isTablet && styles.tabletReleaseBrakeButton,
+                  disabled && styles.disabledButton
+                ]}
+                onPress={handleReleaseBrake}
+                disabled={disabled}
+              >
+                <Text style={[
+                  styles.releaseBrakeButtonText,
+                  isTablet && styles.tabletReleaseBrakeButtonText
+                ]}>
+                  Release Brake
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Speed Controls */}
-      <View style={styles.controlSection}>
-        <Text style={styles.controlLabel}>Motor Speed</Text>
+      <View style={[
+        styles.controlSection,
+        isTablet && styles.tabletControlSection
+      ]}>
+        <Text style={[
+          styles.controlLabel,
+          isTablet && styles.tabletControlLabel
+        ]}>
+          Motor Speed
+        </Text>
         
         {/* Speed Display and Bar */}
         <View style={styles.speedContainer}>
-          <View style={styles.speedBar}>
+          <View style={[
+            styles.speedBar,
+            isTablet && styles.tabletSpeedBar
+          ]}>
             <Animated.View style={[styles.speedFill, animatedSpeedBarStyle]} />
           </View>
-          <Text style={styles.speedText}>{deviceState.speed}%</Text>
+          <Text style={[
+            styles.speedText,
+            isTablet && styles.tabletSpeedText
+          ]}>
+            {deviceState.speed}%
+          </Text>
         </View>
         
         {/* Speed Slider Controls */}
         <View style={styles.sliderContainer}>
-          <Text style={styles.sliderLabel}>Set Speed: {sliderValue}%</Text>
+          <Text style={[
+            styles.sliderLabel,
+            isTablet && styles.tabletSliderLabel
+          ]}>
+            Set Speed: {sliderValue}%
+          </Text>
           <View style={styles.sliderControls}>
             <TouchableOpacity
-              style={[styles.sliderButton, disabled && styles.disabledButton]}
+              style={[
+                styles.sliderButton,
+                isTablet && styles.tabletSliderButton,
+                disabled && styles.disabledButton
+              ]}
               onPress={() => adjustSliderValue(-5)}
               disabled={disabled}
             >
-              <Minus size={16} color="#ffffff" />
+              <Minus size={isTablet ? 20 : 16} color="#ffffff" />
             </TouchableOpacity>
             
             <View style={styles.sliderBarContainer}>
-              <View style={styles.sliderBar}>
+              <View style={[
+                styles.sliderBar,
+                isTablet && styles.tabletSliderBar
+              ]}>
                 <View 
                   style={[
                     styles.sliderFill,
@@ -326,6 +455,7 @@ export function DeviceControls({
                 <View 
                   style={[
                     styles.sliderThumb,
+                    isTablet && styles.tabletSliderThumb,
                     { left: `${sliderValue}%` }
                   ]} 
                 />
@@ -333,30 +463,47 @@ export function DeviceControls({
             </View>
             
             <TouchableOpacity
-              style={[styles.sliderButton, disabled && styles.disabledButton]}
+              style={[
+                styles.sliderButton,
+                isTablet && styles.tabletSliderButton,
+                disabled && styles.disabledButton
+              ]}
               onPress={() => adjustSliderValue(5)}
               disabled={disabled}
             >
-              <Plus size={16} color="#ffffff" />
+              <Plus size={isTablet ? 20 : 16} color="#ffffff" />
             </TouchableOpacity>
           </View>
           
           <TouchableOpacity
-            style={[styles.applySpeedButton, disabled && styles.disabledButton]}
+            style={[
+              styles.applySpeedButton,
+              isTablet && styles.tabletApplySpeedButton,
+              disabled && styles.disabledButton
+            ]}
             onPress={handleSliderSpeedChange}
             disabled={disabled}
           >
-            <Text style={styles.applySpeedButtonText}>Apply Speed</Text>
+            <Text style={[
+              styles.applySpeedButtonText,
+              isTablet && styles.tabletApplySpeedButtonText
+            ]}>
+              Apply Speed
+            </Text>
           </TouchableOpacity>
         </View>
         
         {/* Quick Speed Buttons */}
-        <View style={styles.speedButtons}>
+        <View style={[
+          styles.speedButtons,
+          isTablet && styles.tabletSpeedButtons
+        ]}>
           {[0, 25, 50, 75, 100].map((speed) => (
             <TouchableOpacity
               key={speed}
               style={[
                 styles.speedButton,
+                isTablet && styles.tabletSpeedButton,
                 deviceState.speed === speed && styles.activeSpeedButton,
                 disabled && styles.disabledButton,
               ]}
@@ -365,6 +512,7 @@ export function DeviceControls({
             >
               <Text style={[
                 styles.speedButtonText,
+                isTablet && styles.tabletSpeedButtonText,
                 deviceState.speed === speed && styles.activeSpeedButtonText
               ]}>
                 {speed}%
@@ -375,8 +523,14 @@ export function DeviceControls({
       </View>
 
       {disabled && (
-        <View style={styles.disabledNotice}>
-          <Text style={styles.disabledNoticeText}>
+        <View style={[
+          styles.disabledNotice,
+          isTablet && styles.tabletDisabledNotice
+        ]}>
+          <Text style={[
+            styles.disabledNoticeText,
+            isTablet && styles.tabletDisabledNoticeText
+          ]}>
             Controls disabled - Device not connected or session not active
           </Text>
         </View>
@@ -397,6 +551,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  tabletContainer: {
+    padding: 24,
+    borderRadius: 20,
+  },
   sectionTitle: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
@@ -404,9 +562,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
+  tabletSectionTitle: {
+    fontSize: 24,
+    marginBottom: 20,
+  },
   emergencySection: {
     marginBottom: 24,
     gap: 12,
+  },
+  tabletEmergencySection: {
+    marginBottom: 32,
+    gap: 16,
   },
   emergencyButton: {
     flexDirection: 'row',
@@ -422,11 +588,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  tabletEmergencyButton: {
+    paddingVertical: 20,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+  },
   emergencyButtonText: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
     color: '#ffffff',
     marginLeft: 8,
+  },
+  tabletEmergencyButtonText: {
+    fontSize: 22,
+    marginLeft: 12,
   },
   resetButton: {
     flexDirection: 'row',
@@ -442,11 +617,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  tabletResetButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+  },
   resetButtonText: {
     fontSize: 14,
     fontFamily: 'Inter-Bold',
     color: '#ffffff',
     marginLeft: 8,
+  },
+  tabletResetButtonText: {
+    fontSize: 18,
+    marginLeft: 12,
   },
   brakeInfoSection: {
     backgroundColor: '#f0f9ff',
@@ -456,11 +640,20 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#3b82f6',
   },
+  tabletBrakeInfoSection: {
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 24,
+  },
   brakeInfoText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#1e40af',
     marginBottom: 4,
+  },
+  tabletBrakeInfoText: {
+    fontSize: 16,
+    marginBottom: 8,
   },
   brakeInfoValue: {
     fontFamily: 'Inter-Bold',
@@ -472,8 +665,20 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontStyle: 'italic',
   },
+  tabletBrakeInfoSubtext: {
+    fontSize: 14,
+  },
+  tabletLandscapeControlSection: {
+    flexDirection: 'row',
+    gap: 24,
+    marginBottom: 24,
+  },
   controlSection: {
     marginBottom: 24,
+  },
+  tabletControlSection: {
+    marginBottom: 32,
+    flex: 1,
   },
   controlLabel: {
     fontSize: 16,
@@ -482,9 +687,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
+  tabletControlLabel: {
+    fontSize: 18,
+    marginBottom: 16,
+  },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+  },
+  tabletButtonRow: {
+    gap: 16,
   },
   controlButton: {
     flexDirection: 'row',
@@ -494,6 +706,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     minWidth: 120,
+  },
+  tabletControlButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    minWidth: 140,
+    flex: 1,
   },
   directionButton: {
     backgroundColor: '#22c55e',
@@ -517,6 +736,10 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginLeft: 4,
   },
+  tabletButtonText: {
+    fontSize: 16,
+    marginLeft: 8,
+  },
   releaseButtonContainer: {
     alignItems: 'center',
     marginTop: 12,
@@ -527,10 +750,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
   },
+  tabletReleaseBrakeButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
   releaseBrakeButtonText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#ffffff',
+  },
+  tabletReleaseBrakeButtonText: {
+    fontSize: 16,
   },
   speedContainer: {
     alignItems: 'center',
@@ -544,6 +775,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 8,
   },
+  tabletSpeedBar: {
+    height: 24,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
   speedFill: {
     height: '100%',
     backgroundColor: '#ef4444',
@@ -553,6 +789,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: '#ef4444',
+  },
+  tabletSpeedText: {
+    fontSize: 32,
   },
   sliderContainer: {
     marginBottom: 16,
@@ -564,6 +803,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 12,
   },
+  tabletSliderLabel: {
+    fontSize: 16,
+    marginBottom: 16,
+  },
   sliderControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -574,6 +817,10 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 6,
   },
+  tabletSliderButton: {
+    padding: 12,
+    borderRadius: 8,
+  },
   sliderBarContainer: {
     flex: 1,
     marginHorizontal: 12,
@@ -583,6 +830,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
     borderRadius: 10,
     position: 'relative',
+  },
+  tabletSliderBar: {
+    height: 24,
+    borderRadius: 12,
   },
   sliderFill: {
     height: '100%',
@@ -600,6 +851,13 @@ const styles = StyleSheet.create({
     borderColor: '#6366f1',
     marginLeft: -12,
   },
+  tabletSliderThumb: {
+    top: -4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginLeft: -16,
+  },
   applySpeedButton: {
     backgroundColor: '#1e40af',
     paddingVertical: 10,
@@ -607,15 +865,26 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignSelf: 'center',
   },
+  tabletApplySpeedButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
   applySpeedButtonText: {
     fontSize: 14,
     fontFamily: 'Inter-Bold',
     color: '#ffffff',
   },
+  tabletApplySpeedButtonText: {
+    fontSize: 16,
+  },
   speedButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
+  },
+  tabletSpeedButtons: {
+    gap: 12,
   },
   speedButton: {
     backgroundColor: '#f59e0b',
@@ -626,6 +895,13 @@ const styles = StyleSheet.create({
     minWidth: 60,
     alignItems: 'center',
   },
+  tabletSpeedButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    minWidth: 80,
+    flex: 1,
+  },
   activeSpeedButton: {
     backgroundColor: '#1e40af',
   },
@@ -633,6 +909,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#ffffff',
+  },
+  tabletSpeedButtonText: {
+    fontSize: 14,
   },
   activeSpeedButtonText: {
     color: '#ffffff',
@@ -644,10 +923,18 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 16,
   },
+  tabletDisabledNotice: {
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 20,
+  },
   disabledNoticeText: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#6b7280',
     textAlign: 'center',
+  },
+  tabletDisabledNoticeText: {
+    fontSize: 14,
   },
 });

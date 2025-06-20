@@ -5,8 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusHeader } from '@/components/StatusHeader';
 import { AlertsList } from '@/components/AlertsList';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { ResponsiveContainer } from '@/components/ResponsiveContainer';
 import { useAlerts } from '@/hooks/useAlerts';
 import { useDeviceState } from '@/hooks/useDeviceState';
+import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 
 export default function AlertsScreen() {
   const { 
@@ -20,6 +22,14 @@ export default function AlertsScreen() {
   } = useAlerts();
   
   const { isConnected: deviceConnected } = useDeviceState();
+  const { isTablet, isLandscape, screenType } = useDeviceOrientation();
+
+  const getLayoutStyle = () => {
+    if (isTablet && isLandscape && screenType !== 'phone') {
+      return styles.tabletLandscapeLayout;
+    }
+    return null;
+  };
 
   return (
     <LinearGradient
@@ -30,84 +40,206 @@ export default function AlertsScreen() {
         <ScrollView 
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && styles.tabletScrollContent
+          ]}
         >
-          <StatusHeader />
-          <ConnectionStatus isConnected={deviceConnected} />
-          
-          <View style={styles.card}>
-            <View style={styles.headerContainer}>
-              <Text style={styles.sectionTitle}>System Alerts</Text>
-              {unreadCount > 0 && (
-                <View style={styles.unreadBadge}>
-                  <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
+          <ResponsiveContainer>
+            <View style={getLayoutStyle()}>
+              <View style={isTablet && isLandscape ? styles.leftColumn : null}>
+                <StatusHeader />
+                <ConnectionStatus isConnected={deviceConnected} />
+                
+                <View style={[
+                  styles.card,
+                  isTablet && styles.tabletCard
+                ]}>
+                  <View style={styles.headerContainer}>
+                    <Text style={[
+                      styles.sectionTitle,
+                      isTablet && styles.tabletSectionTitle
+                    ]}>
+                      System Alerts
+                    </Text>
+                    {unreadCount > 0 && (
+                      <View style={[
+                        styles.unreadBadge,
+                        isTablet && styles.tabletUnreadBadge
+                      ]}>
+                        <Text style={[
+                          styles.unreadBadgeText,
+                          isTablet && styles.tabletUnreadBadgeText
+                        ]}>
+                          {unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  
+                  <Text style={[
+                    styles.sectionDescription,
+                    isTablet && styles.tabletSectionDescription
+                  ]}>
+                    Real-time notifications from your AEROSPIN device and app
+                  </Text>
+                  
+                  <AlertsList 
+                    alerts={alerts}
+                    onMarkAsRead={markAsRead}
+                    onDeleteAlert={deleteAlert}
+                    onClearAll={clearAllAlerts}
+                    onMarkAllAsRead={markAllAsRead}
+                  />
                 </View>
-              )}
-            </View>
-            
-            <Text style={styles.sectionDescription}>
-              Real-time notifications from your AEROSPIN device and app
-            </Text>
-            
-            <AlertsList 
-              alerts={alerts}
-              onMarkAsRead={markAsRead}
-              onDeleteAlert={deleteAlert}
-              onClearAll={clearAllAlerts}
-              onMarkAllAsRead={markAllAsRead}
-            />
-          </View>
+              </View>
 
-          {/* Alert Statistics */}
-          <View style={styles.statsCard}>
-            <Text style={styles.statsTitle}>Alert Statistics</Text>
-            <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{alerts.length}</Text>
-                <Text style={styles.statLabel}>Total</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{unreadCount}</Text>
-                <Text style={styles.statLabel}>Unread</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>
-                  {alerts.filter(a => a.type === 'error').length}
-                </Text>
-                <Text style={styles.statLabel}>Errors</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>
-                  {alerts.filter(a => a.source === 'device').length}
-                </Text>
-                <Text style={styles.statLabel}>Device</Text>
-              </View>
-            </View>
-          </View>
+              <View style={isTablet && isLandscape ? styles.rightColumn : null}>
+                {/* Alert Statistics */}
+                <View style={[
+                  styles.statsCard,
+                  isTablet && styles.tabletStatsCard
+                ]}>
+                  <Text style={[
+                    styles.statsTitle,
+                    isTablet && styles.tabletStatsTitle
+                  ]}>
+                    Alert Statistics
+                  </Text>
+                  <View style={[
+                    styles.statsGrid,
+                    isTablet && styles.tabletStatsGrid
+                  ]}>
+                    <View style={[
+                      styles.statItem,
+                      isTablet && styles.tabletStatItem
+                    ]}>
+                      <Text style={[
+                        styles.statValue,
+                        isTablet && styles.tabletStatValue
+                      ]}>
+                        {alerts.length}
+                      </Text>
+                      <Text style={[
+                        styles.statLabel,
+                        isTablet && styles.tabletStatLabel
+                      ]}>
+                        Total
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.statItem,
+                      isTablet && styles.tabletStatItem
+                    ]}>
+                      <Text style={[
+                        styles.statValue,
+                        isTablet && styles.tabletStatValue
+                      ]}>
+                        {unreadCount}
+                      </Text>
+                      <Text style={[
+                        styles.statLabel,
+                        isTablet && styles.tabletStatLabel
+                      ]}>
+                        Unread
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.statItem,
+                      isTablet && styles.tabletStatItem
+                    ]}>
+                      <Text style={[
+                        styles.statValue,
+                        isTablet && styles.tabletStatValue
+                      ]}>
+                        {alerts.filter(a => a.type === 'error').length}
+                      </Text>
+                      <Text style={[
+                        styles.statLabel,
+                        isTablet && styles.tabletStatLabel
+                      ]}>
+                        Errors
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.statItem,
+                      isTablet && styles.tabletStatItem
+                    ]}>
+                      <Text style={[
+                        styles.statValue,
+                        isTablet && styles.tabletStatValue
+                      ]}>
+                        {alerts.filter(a => a.source === 'device').length}
+                      </Text>
+                      <Text style={[
+                        styles.statLabel,
+                        isTablet && styles.tabletStatLabel
+                      ]}>
+                        Device
+                      </Text>
+                    </View>
+                  </View>
+                </View>
 
-          {/* Connection Status Info */}
-          <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>Alert System Status</Text>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Device Connection:</Text>
-              <Text style={[
-                styles.infoValue,
-                { color: deviceConnected ? '#22c55e' : '#ef4444' }
-              ]}>
-                {deviceConnected ? 'Connected' : 'Disconnected'}
-              </Text>
+                {/* Connection Status Info */}
+                <View style={[
+                  styles.infoCard,
+                  isTablet && styles.tabletInfoCard
+                ]}>
+                  <Text style={[
+                    styles.infoTitle,
+                    isTablet && styles.tabletInfoTitle
+                  ]}>
+                    Alert System Status
+                  </Text>
+                  <View style={styles.infoRow}>
+                    <Text style={[
+                      styles.infoLabel,
+                      isTablet && styles.tabletInfoLabel
+                    ]}>
+                      Device Connection:
+                    </Text>
+                    <Text style={[
+                      styles.infoValue,
+                      isTablet && styles.tabletInfoValue,
+                      { color: deviceConnected ? '#22c55e' : '#ef4444' }
+                    ]}>
+                      {deviceConnected ? 'Connected' : 'Disconnected'}
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={[
+                      styles.infoLabel,
+                      isTablet && styles.tabletInfoLabel
+                    ]}>
+                      Alert Monitoring:
+                    </Text>
+                    <Text style={[
+                      styles.infoValue,
+                      isTablet && styles.tabletInfoValue,
+                      { color: '#22c55e' }
+                    ]}>
+                      Active
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={[
+                      styles.infoLabel,
+                      isTablet && styles.tabletInfoLabel
+                    ]}>
+                      Update Frequency:
+                    </Text>
+                    <Text style={[
+                      styles.infoValue,
+                      isTablet && styles.tabletInfoValue
+                    ]}>
+                      Every 10 seconds
+                    </Text>
+                  </View>
+                </View>
+              </View>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Alert Monitoring:</Text>
-              <Text style={[styles.infoValue, { color: '#22c55e' }]}>
-                Active
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Update Frequency:</Text>
-              <Text style={styles.infoValue}>Every 10 seconds</Text>
-            </View>
-          </View>
+          </ResponsiveContainer>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -127,6 +259,19 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
+  tabletScrollContent: {
+    padding: 24,
+  },
+  tabletLandscapeLayout: {
+    flexDirection: 'row',
+    gap: 24,
+  },
+  leftColumn: {
+    flex: 2,
+  },
+  rightColumn: {
+    flex: 1,
+  },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 16,
@@ -137,6 +282,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+  },
+  tabletCard: {
+    padding: 24,
+    borderRadius: 20,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -149,6 +298,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#1e40af',
   },
+  tabletSectionTitle: {
+    fontSize: 24,
+  },
   unreadBadge: {
     backgroundColor: '#ef4444',
     borderRadius: 12,
@@ -156,10 +308,19 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginLeft: 12,
   },
+  tabletUnreadBadge: {
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginLeft: 16,
+  },
   unreadBadgeText: {
     fontSize: 12,
     fontFamily: 'Inter-Bold',
     color: '#ffffff',
+  },
+  tabletUnreadBadgeText: {
+    fontSize: 14,
   },
   sectionDescription: {
     fontSize: 14,
@@ -167,6 +328,10 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  tabletSectionDescription: {
+    fontSize: 16,
+    marginBottom: 24,
   },
   statsCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -179,6 +344,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  tabletStatsCard: {
+    padding: 24,
+    borderRadius: 20,
+  },
   statsTitle: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
@@ -186,12 +355,26 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
+  tabletStatsTitle: {
+    fontSize: 22,
+    marginBottom: 20,
+  },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
+  tabletStatsGrid: {
+    flexDirection: 'column',
+    gap: 16,
+  },
   statItem: {
     alignItems: 'center',
+  },
+  tabletStatItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
   },
   statValue: {
     fontSize: 24,
@@ -199,10 +382,17 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 4,
   },
+  tabletStatValue: {
+    fontSize: 28,
+    marginBottom: 0,
+  },
   statLabel: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#6b7280',
+  },
+  tabletStatLabel: {
+    fontSize: 16,
   },
   infoCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -212,12 +402,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
+  tabletInfoCard: {
+    padding: 20,
+    borderRadius: 20,
+  },
   infoTitle: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
     color: '#374151',
     marginBottom: 12,
     textAlign: 'center',
+  },
+  tabletInfoTitle: {
+    fontSize: 20,
+    marginBottom: 16,
   },
   infoRow: {
     flexDirection: 'row',
@@ -230,9 +428,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#6b7280',
   },
+  tabletInfoLabel: {
+    fontSize: 16,
+  },
   infoValue: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#374151',
+  },
+  tabletInfoValue: {
+    fontSize: 16,
   },
 });

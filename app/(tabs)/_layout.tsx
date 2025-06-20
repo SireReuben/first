@@ -5,8 +5,11 @@ import {
   Settings, 
   Bell,
 } from 'lucide-react-native';
+import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 
 export default function TabLayout() {
+  const { isTablet, isLandscape } = useDeviceOrientation();
+
   return (
     <Tabs
       screenOptions={{
@@ -15,21 +18,21 @@ export default function TabLayout() {
           backgroundColor: '#1e40af',
           borderTopColor: '#3b82f6',
           borderTopWidth: 1,
-          height: 80, // Increased height
-          paddingBottom: 20, // Increased bottom padding
-          paddingTop: 12, // Increased top padding
-          paddingHorizontal: 8, // Added horizontal padding
+          height: isTablet ? (isLandscape ? 70 : 90) : 80,
+          paddingBottom: isTablet ? (isLandscape ? 12 : 24) : 20,
+          paddingTop: isTablet ? (isLandscape ? 8 : 16) : 12,
+          paddingHorizontal: isTablet ? 16 : 8,
         },
         tabBarActiveTintColor: '#ffffff',
         tabBarInactiveTintColor: '#93c5fd',
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: isTablet ? 14 : 12,
           fontFamily: 'Inter-Medium',
-          marginTop: 4, // Added margin between icon and label
-          marginBottom: 4, // Added bottom margin
+          marginTop: 4,
+          marginBottom: 4,
         },
         tabBarIconStyle: {
-          marginTop: 4, // Added top margin for icons
+          marginTop: 4,
         },
       }}
     >
@@ -38,7 +41,7 @@ export default function TabLayout() {
         options={{
           title: 'Sessions',
           tabBarIcon: ({ size, color }) => (
-            <Play size={22} color={color} /> // Slightly smaller icon size
+            <Play size={isTablet ? 26 : 22} color={color} />
           ),
         }}
       />
@@ -47,7 +50,7 @@ export default function TabLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ size, color }) => (
-            <Gauge size={22} color={color} /> // Slightly smaller icon size
+            <Gauge size={isTablet ? 26 : 22} color={color} />
           ),
         }}
       />
@@ -56,7 +59,7 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ size, color }) => (
-            <Settings size={22} color={color} /> // Slightly smaller icon size
+            <Settings size={isTablet ? 26 : 22} color={color} />
           ),
         }}
       />
@@ -65,7 +68,7 @@ export default function TabLayout() {
         options={{
           title: 'Alerts',
           tabBarIcon: ({ size, color }) => (
-            <Bell size={22} color={color} /> // Slightly smaller icon size
+            <Bell size={isTablet ? 26 : 22} color={color} />
           ),
         }}
       />

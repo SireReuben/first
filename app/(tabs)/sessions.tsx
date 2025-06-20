@@ -7,12 +7,15 @@ import { SessionControls } from '@/components/SessionControls';
 import { SessionReport } from '@/components/SessionReport';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { OfflineNotice } from '@/components/OfflineNotice';
+import { ResponsiveContainer } from '@/components/ResponsiveContainer';
 import { useDeviceState } from '@/hooks/useDeviceState';
 import { useAlerts } from '@/hooks/useAlerts';
+import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 
 export default function SessionsScreen() {
   const { deviceState, sessionData, isConnected, startSession, endSession } = useDeviceState();
   const { addSessionAlert } = useAlerts();
+  const { isTablet, isLandscape, screenType } = useDeviceOrientation();
 
   const handleStartSession = async () => {
     await startSession();
@@ -24,6 +27,13 @@ export default function SessionsScreen() {
     addSessionAlert('info', 'Session Ended', 'Device control session terminated and data saved');
   };
 
+  const getLayoutStyle = () => {
+    if (isTablet && isLandscape && screenType !== 'phone') {
+      return styles.tabletLandscapeLayout;
+    }
+    return null;
+  };
+
   return (
     <LinearGradient
       colors={['#1e3a8a', '#3b82f6']}
@@ -33,42 +43,75 @@ export default function SessionsScreen() {
         <ScrollView 
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && styles.tabletScrollContent
+          ]}
         >
-          <StatusHeader />
-          <ConnectionStatus isConnected={isConnected} />
-          
-          {!isConnected && <OfflineNotice />}
-          
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Session Management</Text>
-            <Text style={styles.sectionDescription}>
-              Start a session to begin device control and monitoring
-            </Text>
-            <SessionControls
-              sessionActive={deviceState.sessionActive}
-              onStartSession={handleStartSession}
-              onEndSession={handleEndSession}
-              isConnected={isConnected}
-            />
-          </View>
+          <ResponsiveContainer>
+            <View style={getLayoutStyle()}>
+              <View style={isTablet && isLandscape ? styles.leftColumn : null}>
+                <StatusHeader />
+                <ConnectionStatus isConnected={isConnected} />
+                
+                {!isConnected && <OfflineNotice />}
+                
+                <View style={[
+                  styles.card,
+                  isTablet && styles.tabletCard
+                ]}>
+                  <Text style={[
+                    styles.sectionTitle,
+                    isTablet && styles.tabletSectionTitle
+                  ]}>
+                    Session Management
+                  </Text>
+                  <Text style={[
+                    styles.sectionDescription,
+                    isTablet && styles.tabletSectionDescription
+                  ]}>
+                    Start a session to begin device control and monitoring
+                  </Text>
+                  <SessionControls
+                    sessionActive={deviceState.sessionActive}
+                    onStartSession={handleStartSession}
+                    onEndSession={handleEndSession}
+                    isConnected={isConnected}
+                  />
+                </View>
 
-          {deviceState.sessionActive && (
-            <SessionReport sessionData={sessionData} />
-          )}
+                {!deviceState.sessionActive && (
+                  <View style={[
+                    styles.infoCard,
+                    isTablet && styles.tabletInfoCard
+                  ]}>
+                    <Text style={[
+                      styles.infoTitle,
+                      isTablet && styles.tabletInfoTitle
+                    ]}>
+                      Ready to Start
+                    </Text>
+                    <Text style={[
+                      styles.infoText,
+                      isTablet && styles.tabletInfoText
+                    ]}>
+                      • Ensure device is powered on{'\n'}
+                      • Connect to "AEROSPIN CONTROL" WiFi{'\n'}
+                      • Start a session to access controls{'\n'}
+                      • Dashboard will be available during active sessions{'\n'}
+                      • Brake positions are preserved during operations
+                    </Text>
+                  </View>
+                )}
+              </View>
 
-          {!deviceState.sessionActive && (
-            <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>Ready to Start</Text>
-              <Text style={styles.infoText}>
-                • Ensure device is powered on{'\n'}
-                • Connect to "AEROSPIN CONTROL" WiFi{'\n'}
-                • Start a session to access controls{'\n'}
-                • Dashboard will be available during active sessions{'\n'}
-                • Brake positions are preserved during operations
-              </Text>
+              <View style={isTablet && isLandscape ? styles.rightColumn : null}>
+                {deviceState.sessionActive && (
+                  <SessionReport sessionData={sessionData} />
+                )}
+              </View>
             </View>
-          )}
+          </ResponsiveContainer>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -88,6 +131,19 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
+  tabletScrollContent: {
+    padding: 24,
+  },
+  tabletLandscapeLayout: {
+    flexDirection: 'row',
+    gap: 24,
+  },
+  leftColumn: {
+    flex: 1,
+  },
+  rightColumn: {
+    flex: 1,
+  },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 16,
@@ -99,6 +155,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  tabletCard: {
+    padding: 24,
+    borderRadius: 20,
+  },
   sectionTitle: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
@@ -106,12 +166,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
+  tabletSectionTitle: {
+    fontSize: 24,
+    marginBottom: 12,
+  },
   sectionDescription: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6b7280',
     textAlign: 'center',
     marginBottom: 16,
+  },
+  tabletSectionDescription: {
+    fontSize: 16,
+    marginBottom: 20,
   },
   infoCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -122,6 +190,10 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     borderStyle: 'dashed',
   },
+  tabletInfoCard: {
+    padding: 24,
+    borderRadius: 20,
+  },
   infoTitle: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
@@ -129,10 +201,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
+  tabletInfoTitle: {
+    fontSize: 22,
+    marginBottom: 16,
+  },
   infoText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6b7280',
     lineHeight: 20,
+  },
+  tabletInfoText: {
+    fontSize: 16,
+    lineHeight: 24,
   },
 });

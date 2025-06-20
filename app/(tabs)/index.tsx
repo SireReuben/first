@@ -6,8 +6,10 @@ import { StatusHeader } from '@/components/StatusHeader';
 import { DeviceControls } from '@/components/DeviceControls';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { SessionRequiredNotice } from '@/components/SessionRequiredNotice';
+import { ResponsiveContainer } from '@/components/ResponsiveContainer';
 import { useDeviceState } from '@/hooks/useDeviceState';
 import { useAlerts } from '@/hooks/useAlerts';
+import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 
 export default function DashboardScreen() {
   const { 
@@ -20,6 +22,7 @@ export default function DashboardScreen() {
   } = useDeviceState();
   
   const { addOperationAlert, addSafetyAlert } = useAlerts();
+  const { isTablet, isLandscape, screenType } = useDeviceOrientation();
 
   // Enhanced device control handlers with alert integration
   const handleUpdateDeviceState = async (updates: Partial<typeof deviceState>) => {
@@ -63,16 +66,28 @@ export default function DashboardScreen() {
           <ScrollView 
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              isTablet && styles.tabletScrollContent
+            ]}
           >
-            <StatusHeader />
-            <ConnectionStatus isConnected={isConnected} />
-            <SessionRequiredNotice />
+            <ResponsiveContainer>
+              <StatusHeader />
+              <ConnectionStatus isConnected={isConnected} />
+              <SessionRequiredNotice />
+            </ResponsiveContainer>
           </ScrollView>
         </SafeAreaView>
       </LinearGradient>
     );
   }
+
+  const getLayoutStyle = () => {
+    if (isTablet && isLandscape && screenType !== 'phone') {
+      return styles.tabletLandscapeLayout;
+    }
+    return null;
+  };
 
   return (
     <LinearGradient
@@ -83,67 +98,139 @@ export default function DashboardScreen() {
         <ScrollView 
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && styles.tabletScrollContent
+          ]}
         >
-          <StatusHeader />
-          <ConnectionStatus isConnected={isConnected} />
-          
-          <View style={styles.statusCard}>
-            <Text style={styles.sectionTitle}>Live Device Status</Text>
-            <View style={styles.statusGrid}>
-              <View style={styles.statusItem}>
-                <Text style={styles.statusLabel}>Direction</Text>
-                <Text style={[
-                  styles.statusValue,
-                  deviceState.direction !== 'None' && styles.statusValueActive
+          <ResponsiveContainer>
+            <View style={getLayoutStyle()}>
+              <View style={isTablet && isLandscape ? styles.leftColumn : null}>
+                <StatusHeader />
+                <ConnectionStatus isConnected={isConnected} />
+                
+                <View style={[
+                  styles.statusCard,
+                  isTablet && styles.tabletStatusCard
                 ]}>
-                  {deviceState.direction}
-                </Text>
+                  <Text style={[
+                    styles.sectionTitle,
+                    isTablet && styles.tabletSectionTitle
+                  ]}>
+                    Live Device Status
+                  </Text>
+                  <View style={[
+                    styles.statusGrid,
+                    isTablet && styles.tabletStatusGrid
+                  ]}>
+                    <View style={[
+                      styles.statusItem,
+                      isTablet && styles.tabletStatusItem
+                    ]}>
+                      <Text style={[
+                        styles.statusLabel,
+                        isTablet && styles.tabletStatusLabel
+                      ]}>
+                        Direction
+                      </Text>
+                      <Text style={[
+                        styles.statusValue,
+                        isTablet && styles.tabletStatusValue,
+                        deviceState.direction !== 'None' && styles.statusValueActive
+                      ]}>
+                        {deviceState.direction}
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.statusItem,
+                      isTablet && styles.tabletStatusItem
+                    ]}>
+                      <Text style={[
+                        styles.statusLabel,
+                        isTablet && styles.tabletStatusLabel
+                      ]}>
+                        Brake
+                      </Text>
+                      <Text style={[
+                        styles.statusValue,
+                        isTablet && styles.tabletStatusValue,
+                        deviceState.brake !== 'None' && styles.statusValueActive
+                      ]}>
+                        {deviceState.brake}
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.statusItem,
+                      isTablet && styles.tabletStatusItem
+                    ]}>
+                      <Text style={[
+                        styles.statusLabel,
+                        isTablet && styles.tabletStatusLabel
+                      ]}>
+                        Speed
+                      </Text>
+                      <Text style={[
+                        styles.statusValue,
+                        isTablet && styles.tabletStatusValue,
+                        deviceState.speed > 0 && styles.statusValueActive
+                      ]}>
+                        {deviceState.speed}%
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.statusItem,
+                      isTablet && styles.tabletStatusItem
+                    ]}>
+                      <Text style={[
+                        styles.statusLabel,
+                        isTablet && styles.tabletStatusLabel
+                      ]}>
+                        Session
+                      </Text>
+                      <Text style={[
+                        styles.statusValue,
+                        isTablet && styles.tabletStatusValue,
+                        styles.statusValueActive
+                      ]}>
+                        Active
+                      </Text>
+                    </View>
+                  </View>
+                </View>
               </View>
-              <View style={styles.statusItem}>
-                <Text style={styles.statusLabel}>Brake</Text>
-                <Text style={[
-                  styles.statusValue,
-                  deviceState.brake !== 'None' && styles.statusValueActive
+
+              <View style={isTablet && isLandscape ? styles.rightColumn : null}>
+                <DeviceControls 
+                  deviceState={deviceState}
+                  onUpdateState={handleUpdateDeviceState}
+                  onEmergencyStop={handleEmergencyStop}
+                  onReset={handleResetDevice}
+                  onReleaseBrake={handleReleaseBrake}
+                  disabled={!isConnected}
+                />
+
+                <View style={[
+                  styles.warningCard,
+                  isTablet && styles.tabletWarningCard
                 ]}>
-                  {deviceState.brake}
-                </Text>
-              </View>
-              <View style={styles.statusItem}>
-                <Text style={styles.statusLabel}>Speed</Text>
-                <Text style={[
-                  styles.statusValue,
-                  deviceState.speed > 0 && styles.statusValueActive
-                ]}>
-                  {deviceState.speed}%
-                </Text>
-              </View>
-              <View style={styles.statusItem}>
-                <Text style={styles.statusLabel}>Session</Text>
-                <Text style={[styles.statusValue, styles.statusValueActive]}>
-                  Active
-                </Text>
+                  <Text style={[
+                    styles.warningTitle,
+                    isTablet && styles.tabletWarningTitle
+                  ]}>
+                    ⚠️ Safety Notice
+                  </Text>
+                  <Text style={[
+                    styles.warningText,
+                    isTablet && styles.tabletWarningText
+                  ]}>
+                    Always ensure proper safety protocols are followed when operating the device. 
+                    Monitor all operations and be prepared to use emergency stop if needed.
+                    The brake position will be preserved during emergency stops and device resets.
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
-
-          <DeviceControls 
-            deviceState={deviceState}
-            onUpdateState={handleUpdateDeviceState}
-            onEmergencyStop={handleEmergencyStop}
-            onReset={handleResetDevice}
-            onReleaseBrake={handleReleaseBrake}
-            disabled={!isConnected}
-          />
-
-          <View style={styles.warningCard}>
-            <Text style={styles.warningTitle}>⚠️ Safety Notice</Text>
-            <Text style={styles.warningText}>
-              Always ensure proper safety protocols are followed when operating the device. 
-              Monitor all operations and be prepared to use emergency stop if needed.
-              The brake position will be preserved during emergency stops and device resets.
-            </Text>
-          </View>
+          </ResponsiveContainer>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -163,6 +250,19 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
+  tabletScrollContent: {
+    padding: 24,
+  },
+  tabletLandscapeLayout: {
+    flexDirection: 'row',
+    gap: 24,
+  },
+  leftColumn: {
+    flex: 1,
+  },
+  rightColumn: {
+    flex: 1,
+  },
   statusCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 16,
@@ -174,6 +274,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  tabletStatusCard: {
+    padding: 24,
+    borderRadius: 20,
+  },
   sectionTitle: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
@@ -181,10 +285,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
+  tabletSectionTitle: {
+    fontSize: 24,
+    marginBottom: 20,
+  },
   statusGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+  },
+  tabletStatusGrid: {
+    gap: 16,
   },
   statusItem: {
     width: '48%',
@@ -194,16 +305,28 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     alignItems: 'center',
   },
+  tabletStatusItem: {
+    width: '47%',
+    padding: 20,
+    borderRadius: 16,
+  },
   statusLabel: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#64748b',
     marginBottom: 4,
   },
+  tabletStatusLabel: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
   statusValue: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
     color: '#6b7280',
+  },
+  tabletStatusValue: {
+    fontSize: 22,
   },
   statusValueActive: {
     color: '#1e40af',
@@ -216,16 +339,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fecaca',
   },
+  tabletWarningCard: {
+    padding: 24,
+    borderRadius: 20,
+  },
   warningTitle: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
     color: '#dc2626',
     marginBottom: 8,
   },
+  tabletWarningTitle: {
+    fontSize: 18,
+    marginBottom: 12,
+  },
   warningText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#7f1d1d',
     lineHeight: 20,
+  },
+  tabletWarningText: {
+    fontSize: 16,
+    lineHeight: 24,
   },
 });
