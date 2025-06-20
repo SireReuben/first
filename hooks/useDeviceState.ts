@@ -17,8 +17,8 @@ interface SessionData {
 
 // Enhanced connection logic for Android with multiple fallback strategies
 const ARDUINO_BASE_URL = Platform.OS === 'web' ? '/api' : 'http://192.168.4.1';
-const CONNECTION_TIMEOUT = 5000; // Reduced timeout for faster feedback
-const MAX_RETRY_ATTEMPTS = 3; // Reduced retry attempts
+const CONNECTION_TIMEOUT = 3000; // Reduced timeout for faster feedback
+const MAX_RETRY_ATTEMPTS = 2; // Reduced retry attempts
 const ARDUINO_NETWORK_PREFIX = '192.168.4.';
 
 // Alternative endpoints to try if main fails
@@ -54,14 +54,21 @@ export function useDeviceState() {
   // Store brake position before reset/emergency stop
   const [previousBrakePosition, setPreviousBrakePosition] = useState<string>('None');
 
-  // Enhanced network detection for Android with error handling
+  // Enhanced network detection for Android with better error handling
   const detectArduinoNetwork = useCallback(async (): Promise<string | null> => {
     if (Platform.OS === 'web') {
       return ARDUINO_BASE_URL;
     }
 
     try {
-      const networkState = await Network.getNetworkStateAsync();
+      // Add timeout to network state check
+      const networkPromise = Network.getNetworkStateAsync();
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Network state timeout')), 2000)
+      );
+      
+      const networkState = await Promise.race([networkPromise, timeoutPromise]);
+      
       if (!networkState.isConnected) {
         setNetworkInfo('No network connection');
         return null;
@@ -69,11 +76,11 @@ export function useDeviceState() {
 
       // Get current IP address with timeout
       const ipPromise = Network.getIpAddressAsync();
-      const timeoutPromise = new Promise<string>((_, reject) => 
-        setTimeout(() => reject(new Error('IP detection timeout')), 3000)
+      const ipTimeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('IP detection timeout')), 2000)
       );
       
-      const ipAddress = await Promise.race([ipPromise, timeoutPromise]) as string;
+      const ipAddress = await Promise.race([ipPromise, ipTimeoutPromise]) as string;
       setNetworkInfo(`Current IP: ${ipAddress}`);
       
       // Check if the IP address is invalid
@@ -107,13 +114,19 @@ export function useDeviceState() {
     }
   }, []);
 
-  // Enhanced connection check with better error handling
+  // Enhanced connection check with better error handling and timeout management
   const checkConnection = useCallback(async (retryCount = 0): Promise<boolean> => {
     try {
       setConnectionAttempts(prev => prev + 1);
       
       // First, detect the correct network and endpoint
-      const detectedEndpoint = await detectArduinoNetwork();
+      let detectedEndpoint: string | null = null;
+      
+      try {
+        detectedEndpoint = await detectArduinoNetwork();
+      } catch (networkError) {
+        console.log('Network detection failed:', networkError);
+      }
       
       // Try multiple endpoints
       const endpointsToTry = detectedEndpoint ? [detectedEndpoint] : FALLBACK_ENDPOINTS;
@@ -143,7 +156,14 @@ export function useDeviceState() {
             setCurrentEndpoint(endpoint);
             setIsConnected(true);
             setLastConnectionCheck(new Date());
-            await fetchDeviceStatus(endpoint);
+            
+            // Try to fetch device status, but don't fail if it doesn't work
+            try {
+              await fetchDeviceStatus(endpoint);
+            } catch (statusError) {
+              console.log('Failed to fetch initial device status:', statusError);
+            }
+            
             return true;
           } else {
             console.log(`HTTP error ${response.status} from ${endpoint}`);
@@ -224,12 +244,12 @@ export function useDeviceState() {
             console.error('Initial connection check failed:', error);
           }
         }
-      }, Platform.OS === 'android' ? 2000 : 1000);
+      }, Platform.OS === 'android' ? 1500 : 1000);
 
       // Set up periodic connection monitoring
       setTimeout(() => {
         if (isComponentMounted) {
-          const interval = isConnected ? 30000 : 20000; // Less frequent when connected
+          const interval = isConnected ? 45000 : 25000; // Less frequent when connected
           console.log(`Setting up connection monitoring every ${interval}ms`);
           
           connectionCheckInterval = setInterval(async () => {
@@ -242,7 +262,7 @@ export function useDeviceState() {
             }
           }, interval);
         }
-      }, 5000);
+      }, 3000);
     };
 
     startConnectionMonitoring();
@@ -311,7 +331,7 @@ export function useDeviceState() {
         }
       };
 
-      sessionInterval = setInterval(fetchSessionLog, 25000); // Less frequent polling
+      sessionInterval = setInterval(fetchSessionLog, 30000); // Less frequent polling
     }
 
     return () => {
@@ -518,16 +538,16 @@ export function useDeviceState() {
 
       if (isConnected) {
         try {
-          await sendArduinoCommand('/reset', 10000); // Longer timeout for reset
+          await sendArduinoCommand('/reset', 8000); // Longer timeout for reset
           
           // After reset, restore the brake position
           setTimeout(async () => {
             let reconnectAttempts = 0;
-            const maxAttempts = 5; // Reduced attempts
+            const maxAttempts = 3; // Reduced attempts
             
             const attemptReconnectAndRestore = async () => {
               try {
-                const response = await sendArduinoCommand('/ping', 3000);
+                const response = await sendArduinoCommand('/ping', 2000);
                 if (response.ok) {
                   setIsConnected(true);
                   
@@ -535,7 +555,7 @@ export function useDeviceState() {
                   if (currentBrake !== 'None') {
                     try {
                       const action = currentBrake.toLowerCase();
-                      await sendArduinoCommand(`/brake?action=${action}&state=on`, 5000);
+                      await sendArduinoCommand(`/brake?action=${action}&state=on`, 3000);
                       addSessionEvent(`Device reset completed - brake position restored to: ${currentBrake}`);
                     } catch (brakeError) {
                       addSessionEvent(`Device reset completed - failed to restore brake position: ${currentBrake}`);
@@ -551,14 +571,14 @@ export function useDeviceState() {
               
               reconnectAttempts++;
               if (reconnectAttempts < maxAttempts) {
-                setTimeout(attemptReconnectAndRestore, 3000); // Shorter delay
+                setTimeout(attemptReconnectAndRestore, 2000); // Shorter delay
               } else {
                 addSessionEvent(`Device reset completed - manual reconnection required. Brake position preserved locally: ${currentBrake}`);
               }
             };
             
             attemptReconnectAndRestore();
-          }, 5000); // Shorter initial delay
+          }, 3000); // Shorter initial delay
           
         } catch (error) {
           console.log('Reset command failed, device may have restarted');
@@ -601,8 +621,8 @@ export function useDeviceState() {
 
       if (isConnected) {
         try {
-          await sendArduinoCommand('/speed?value=0', 2000);
-          await sendArduinoCommand('/direction?state=none', 2000);
+          await sendArduinoCommand('/speed?value=0', 1500);
+          await sendArduinoCommand('/direction?state=none', 1500);
           // Don't change brake position during emergency stop
           
           addSessionEvent(`Emergency stop commands sent to device - brake position maintained: ${currentBrake}`);
@@ -647,6 +667,17 @@ export function useDeviceState() {
     }
   }, []);
 
+  // Add refresh function for manual data refresh
+  const refreshSessionData = useCallback(async () => {
+    try {
+      if (isConnected && deviceState.sessionActive) {
+        await fetchDeviceStatus();
+      }
+    } catch (error) {
+      console.error('Failed to refresh session data:', error);
+    }
+  }, [isConnected, deviceState.sessionActive, fetchDeviceStatus]);
+
   return {
     deviceState,
     isConnected,
@@ -663,5 +694,6 @@ export function useDeviceState() {
     releaseBrake,
     previousBrakePosition,
     checkConnection,
+    refreshSessionData,
   };
 }

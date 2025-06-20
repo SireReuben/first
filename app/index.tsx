@@ -20,6 +20,7 @@ export default function WelcomeScreen() {
   const { hasLocationPermission, hasNetworkAccess } = useNetworkPermissions();
   const [showManualConnect, setShowManualConnect] = useState(false);
   const [hasTriedConnection, setHasTriedConnection] = useState(false);
+  const [navigationError, setNavigationError] = useState<string | null>(null);
   const { isTablet, isLandscape, screenType } = useDeviceOrientation();
 
   const canProceed = Platform.OS === 'web' || (hasLocationPermission && hasNetworkAccess);
@@ -87,41 +88,45 @@ export default function WelcomeScreen() {
   useEffect(() => {
     if (isConnected && canProceed) {
       const timer = setTimeout(() => {
-        try {
-          router.replace('/(tabs)/sessions');
-        } catch (error) {
-          console.error('Navigation error:', error);
-          // Fallback navigation
-          setShowManualConnect(true);
-        }
+        handleNavigation();
       }, 2000);
       return () => clearTimeout(timer);
     }
   }, [isConnected, canProceed]);
+
+  const handleNavigation = () => {
+    try {
+      setNavigationError(null);
+      
+      // Use replace for cleaner navigation stack
+      if (router.canGoBack()) {
+        router.replace('/(tabs)/sessions');
+      } else {
+        // If we can't go back, try push
+        router.push('/(tabs)/sessions');
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      setNavigationError('Navigation failed. Please try again.');
+      
+      // Fallback: try alternative navigation after delay
+      setTimeout(() => {
+        try {
+          router.push('/(tabs)');
+        } catch (fallbackError) {
+          console.error('Fallback navigation also failed:', fallbackError);
+          setNavigationError('Unable to navigate. Please restart the app.');
+        }
+      }, 1000);
+    }
+  };
 
   const handleManualConnect = () => {
     if (!canProceed) {
       return;
     }
     
-    try {
-      router.replace('/(tabs)/sessions');
-    } catch (error) {
-      console.error('Manual navigation error:', error);
-      // If navigation fails, try again with push
-      try {
-        router.push('/(tabs)/sessions');
-      } catch (pushError) {
-        console.error('Push navigation also failed:', pushError);
-      }
-    }
-  };
-
-  const getLayoutStyle = () => {
-    if (isTablet && isLandscape && screenType !== 'phone') {
-      return styles.tabletLandscapeLayout;
-    }
-    return null;
+    handleNavigation();
   };
 
   const getConnectionMessage = () => {
@@ -145,6 +150,10 @@ export default function WelcomeScreen() {
   };
 
   const getStatusMessage = () => {
+    if (navigationError) {
+      return navigationError;
+    }
+    
     if (!canProceed) {
       return 'Setting up permissions...';
     }
@@ -158,6 +167,13 @@ export default function WelcomeScreen() {
     }
     
     return 'Searching for AEROSPIN device...';
+  };
+
+  const getLayoutStyle = () => {
+    if (isTablet && isLandscape && screenType !== 'phone') {
+      return styles.tabletLandscapeLayout;
+    }
+    return null;
   };
 
   return (
@@ -236,18 +252,19 @@ export default function WelcomeScreen() {
               <View style={styles.statusContainer}>
                 <Text style={[
                   styles.statusText,
-                  isTablet && styles.tabletStatusText
+                  isTablet && styles.tabletStatusText,
+                  navigationError && styles.errorText
                 ]}>
                   {getStatusMessage()}
                 </Text>
                 
                 {/* Show loading spinner while trying to connect */}
-                {!isConnected && !showManualConnect && canProceed && (
+                {!isConnected && !showManualConnect && canProceed && !navigationError && (
                   <LoadingSpinner isVisible={true} />
                 )}
                 
                 {/* Show connection details */}
-                {(connectionAttempts > 0 || !canProceed) && (
+                {(connectionAttempts > 0 || !canProceed) && !navigationError && (
                   <Text style={[
                     styles.detailText,
                     isTablet && styles.tabletDetailText
@@ -258,7 +275,7 @@ export default function WelcomeScreen() {
               </View>
               
               {/* Success message when connected */}
-              {isConnected && (
+              {isConnected && !navigationError && (
                 <Animated.View style={styles.successMessage}>
                   <Text style={[
                     styles.successText,
@@ -303,6 +320,26 @@ export default function WelcomeScreen() {
                       isTablet && styles.tabletManualConnectButtonText
                     ]}>
                       Continue Anyway
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Navigation error retry */}
+              {navigationError && (
+                <View style={styles.errorContainer}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.retryButton,
+                      isTablet && styles.tabletRetryButton
+                    ]}
+                    onPress={handleNavigation}
+                  >
+                    <Text style={[
+                      styles.retryButtonText,
+                      isTablet && styles.tabletRetryButtonText
+                    ]}>
+                      Try Again
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -444,6 +481,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginBottom: 12,
   },
+  errorText: {
+    color: '#fecaca',
+  },
   detailText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
@@ -527,6 +567,29 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   tabletManualConnectButtonText: {
+    fontSize: 20,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  retryButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  tabletRetryButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 16,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+  },
+  tabletRetryButtonText: {
     fontSize: 20,
   },
   footer: {

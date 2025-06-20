@@ -71,11 +71,11 @@ export function useAlerts() {
     setAlerts(prev => prev.map(alert => ({ ...alert, read: true })));
   }, []);
 
-  // Check device connection and fetch alerts
+  // Check device connection and fetch alerts with better error handling
   const checkConnectionAndFetchAlerts = useCallback(async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // Reduced timeout
       
       const response = await fetch(`${ARDUINO_BASE_URL}/ping`, {
         method: 'GET',
@@ -106,11 +106,11 @@ export function useAlerts() {
     }
   }, [isConnected, addAlert]);
 
-  // Fetch device-specific alerts
+  // Fetch device-specific alerts with better error handling
   const fetchDeviceAlerts = useCallback(async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
       
       const response = await fetch(`${ARDUINO_BASE_URL}/alerts`, {
         signal: controller.signal,
@@ -141,8 +141,8 @@ export function useAlerts() {
     const now = new Date();
     const hour = now.getHours();
     
-    // System health check alerts
-    if (Math.random() > 0.85) { // 15% chance
+    // System health check alerts (reduced frequency)
+    if (Math.random() > 0.92) { // 8% chance (reduced from 15%)
       const healthAlerts = [
         {
           type: 'info' as const,
@@ -176,7 +176,7 @@ export function useAlerts() {
     }
   }, [addAlert]);
 
-  // Connection monitoring and alert generation
+  // Connection monitoring and alert generation with better error handling
   useEffect(() => {
     let alertInterval: NodeJS.Timeout;
     let systemInterval: NodeJS.Timeout;
@@ -185,24 +185,41 @@ export function useAlerts() {
     // Initial connection check
     const initialCheck = setTimeout(() => {
       if (isComponentMounted) {
-        checkConnectionAndFetchAlerts();
+        checkConnectionAndFetchAlerts().catch(error => {
+          console.error('Initial alert check failed:', error);
+        });
       }
-    }, 2000);
+    }, 3000); // Increased delay
 
     // Regular connection and alert checks
     const startPeriodicChecks = setTimeout(() => {
       if (isComponentMounted) {
-        alertInterval = setInterval(checkConnectionAndFetchAlerts, 10000); // Every 10 seconds
-        systemInterval = setInterval(generateSystemAlerts, 30000); // Every 30 seconds
+        alertInterval = setInterval(() => {
+          if (isComponentMounted) {
+            checkConnectionAndFetchAlerts().catch(error => {
+              console.error('Periodic alert check failed:', error);
+            });
+          }
+        }, 15000); // Every 15 seconds (increased from 10)
+        
+        systemInterval = setInterval(() => {
+          if (isComponentMounted) {
+            try {
+              generateSystemAlerts();
+            } catch (error) {
+              console.error('System alert generation failed:', error);
+            }
+          }
+        }, 45000); // Every 45 seconds (increased from 30)
       }
-    }, 5000);
+    }, 8000); // Increased delay
 
     // Add initial welcome alert
     setTimeout(() => {
       if (isComponentMounted) {
         addAlert('info', 'System Ready', 'AEROSPIN Control System initialized successfully', 'local');
       }
-    }, 1000);
+    }, 2000); // Increased delay
 
     return () => {
       isComponentMounted = false;
@@ -234,6 +251,15 @@ export function useAlerts() {
     addAlert(status, titles[status], `${operation} ${status === 'success' ? 'completed successfully' : status === 'warning' ? 'completed with warnings' : 'failed'}`, 'local');
   }, [addAlert]);
 
+  // Refresh alerts function
+  const refreshAlerts = useCallback(async () => {
+    try {
+      await checkConnectionAndFetchAlerts();
+    } catch (error) {
+      console.error('Failed to refresh alerts:', error);
+    }
+  }, [checkConnectionAndFetchAlerts]);
+
   // Get unread count
   const unreadCount = alerts.filter(alert => !alert.read).length;
 
@@ -262,5 +288,6 @@ export function useAlerts() {
     markAllAsRead,
     getAlertsByType,
     getRecentAlerts,
+    refreshAlerts,
   };
 }
