@@ -97,7 +97,6 @@ export default function SessionsScreen() {
                 <StatusHeader />
                 <ConnectionStatus isConnected={isConnected} />
                 {!isConnected && <OfflineNotice />}
-                
                 <View style={[styles.card, isTablet && styles.tabletCard]}>
                   <Text style={[
                     styles.sectionTitle,
@@ -120,7 +119,6 @@ export default function SessionsScreen() {
                     isConnected={isConnected}
                   />
                 </View>
-
                 {!deviceState.sessionActive && (
                   <View style={[styles.infoCard, isTablet && styles.tabletInfoCard]}>
                     <Text style={[
@@ -144,14 +142,12 @@ export default function SessionsScreen() {
                   </View>
                 )}
               </View>
-
               {isLandscapeTablet && deviceState.sessionActive && (
                 <View style={styles.rightColumn}>
                   <SessionReport sessionData={sessionData} />
                 </View>
               )}
             </View>
-
             {!isLandscapeTablet && deviceState.sessionActive && (
               <SessionReport sessionData={sessionData} />
             )}
