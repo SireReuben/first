@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusHeader } from '@/components/StatusHeader';
@@ -13,30 +13,62 @@ import { useAlerts } from '@/hooks/useAlerts';
 import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 
 export default function SessionsScreen() {
-  const { deviceState, sessionData, isConnected, startSession, endSession } = useDeviceState();
+  const { 
+    deviceState, 
+    sessionData, 
+    isConnected, 
+    startSession, 
+    endSession,
+    refreshSessionData
+  } = useDeviceState();
+  
   const { addSessionAlert } = useAlerts();
   const { isTablet, isLandscape, screenType } = useDeviceOrientation();
+  const [refreshing, setRefreshing] = React.useState(false);
 
-  const handleStartSession = async () => {
-    await startSession();
-    addSessionAlert('success', 'Session Started', 'Device control session initiated successfully');
-  };
+  const isLandscapeTablet = useMemo(
+    () => isTablet && isLandscape && screenType !== 'phone',
+    [isTablet, isLandscape, screenType]
+  );
 
-  const handleEndSession = async () => {
-    await endSession();
-    addSessionAlert('info', 'Session Ended', 'Device control session terminated and data saved');
-  };
-
-  const getLayoutStyle = () => {
-    if (isTablet && isLandscape && screenType !== 'phone') {
-      return styles.tabletLandscapeLayout;
+  const handleStartSession = useCallback(async () => {
+    try {
+      await startSession();
+      addSessionAlert('success', 'Session Started', 'Device control session initiated successfully');
+    } catch (error) {
+      addSessionAlert('error', 'Start Failed', 'Could not start session');
     }
-    return null;
-  };
+  }, [startSession, addSessionAlert]);
+
+  const handleEndSession = useCallback(async () => {
+    try {
+      await endSession();
+      addSessionAlert('info', 'Session Ended', 'Device control session terminated and data saved');
+    } catch (error) {
+      addSessionAlert('error', 'End Failed', 'Could not properly end session');
+    }
+  }, [endSession, addSessionAlert]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshSessionData();
+    setRefreshing(false);
+  }, [refreshSessionData]);
+
+  const readyInstructions = useMemo(() => [
+    '• Ensure device is powered on',
+    '• Connect to "AEROSPIN CONTROL" WiFi',
+    '• Start a session to access controls',
+    '• Dashboard will be available during active sessions',
+    '• Brake positions are preserved during operations'
+  ].join('\n'), []);
 
   return (
     <LinearGradient
       colors={['#1e3a8a', '#3b82f6']}
+      locations={[0, 0.8]}
+      useAngle={true}
+      angle={145}
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>
@@ -47,26 +79,37 @@ export default function SessionsScreen() {
             styles.scrollContent,
             isTablet && styles.tabletScrollContent
           ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#ffffff"
+              colors={['#ffffff']}
+            />
+          }
         >
           <ResponsiveContainer>
-            <View style={getLayoutStyle()}>
-              <View style={isTablet && isLandscape ? styles.leftColumn : null}>
+            <View style={isLandscapeTablet ? styles.tabletLandscapeLayout : null}>
+              <View style={[
+                isLandscapeTablet ? styles.leftColumn : null,
+                { marginBottom: isLandscapeTablet ? 0 : 16 }
+              ]}>
                 <StatusHeader />
                 <ConnectionStatus isConnected={isConnected} />
                 {!isConnected && <OfflineNotice />}
-                <View style={[
-                  styles.card,
-                  isTablet && styles.tabletCard
-                ]}>
+                
+                <View style={[styles.card, isTablet && styles.tabletCard]}>
                   <Text style={[
                     styles.sectionTitle,
-                    isTablet && styles.tabletSectionTitle
+                    isTablet && styles.tabletSectionTitle,
+                    styles.text
                   ]}>
                     Session Management
                   </Text>
                   <Text style={[
                     styles.sectionDescription,
-                    isTablet && styles.tabletSectionDescription
+                    isTablet && styles.tabletSectionDescription,
+                    styles.text
                   ]}>
                     Start a session to begin device control and monitoring
                   </Text>
@@ -77,36 +120,37 @@ export default function SessionsScreen() {
                     isConnected={isConnected}
                   />
                 </View>
+
                 {!deviceState.sessionActive && (
-                  <View style={[
-                    styles.infoCard,
-                    isTablet && styles.tabletInfoCard
-                  ]}>
+                  <View style={[styles.infoCard, isTablet && styles.tabletInfoCard]}>
                     <Text style={[
                       styles.infoTitle,
-                      isTablet && styles.tabletInfoTitle
+                      isTablet && styles.tabletInfoTitle,
+                      styles.text
                     ]}>
                       Ready to Start
                     </Text>
                     <Text style={[
                       styles.infoText,
-                      isTablet && styles.tabletInfoText
+                      isTablet && styles.tabletInfoText,
+                      styles.text
                     ]}>
-                      • Ensure device is powered on{'\n'}
-                      • Connect to "AEROSPIN CONTROL" WiFi{'\n'}
-                      • Start a session to access controls{'\n'}
-                      • Dashboard will be available during active sessions{'\n'}
-                      • Brake positions are preserved during operations
+                      {readyInstructions}
                     </Text>
                   </View>
                 )}
               </View>
-              <View style={isTablet && isLandscape ? styles.rightColumn : null}>
-                {deviceState.sessionActive && (
+
+              {isLandscapeTablet && deviceState.sessionActive && (
+                <View style={styles.rightColumn}>
                   <SessionReport sessionData={sessionData} />
-                )}
-              </View>
+                </View>
+              )}
             </View>
+
+            {!isLandscapeTablet && deviceState.sessionActive && (
+              <SessionReport sessionData={sessionData} />
+            )}
           </ResponsiveContainer>
         </ScrollView>
       </SafeAreaView>
@@ -145,12 +189,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     elevation: 4,
   },
   tabletCard: {
     padding: 24,
     borderRadius: 20,
+  },
+  text: {
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   sectionTitle: {
     fontSize: 20,
