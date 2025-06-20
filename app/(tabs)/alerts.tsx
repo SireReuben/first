@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusHeader } from '@/components/StatusHeader';
 import { AlertsList } from '@/components/AlertsList';
-import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { ResponsiveContainer } from '@/components/ResponsiveContainer';
 import { useAlerts } from '@/hooks/useAlerts';
 import { useDeviceState } from '@/hooks/useDeviceState';
@@ -131,7 +130,6 @@ export default function AlertsScreen() {
                 { marginBottom: isLandscapeTablet ? 0 : 16 }
               ]}>
                 <StatusHeader />
-                <ConnectionStatus isConnected={deviceConnected} />
                 <View style={[styles.card, isTablet && styles.tabletCard]}>
                   <View style={styles.headerContainer}>
                     <Text style={[styles.sectionTitle, isTablet && styles.tabletSectionTitle]}>
@@ -171,18 +169,6 @@ export default function AlertsScreen() {
                     </Text>
                     <View style={styles.infoRow}>
                       <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
-                        Device Connection:
-                      </Text>
-                      <Text style={[
-                        styles.infoValue,
-                        isTablet && styles.tabletInfoValue,
-                        { color: deviceConnected ? '#22c55e' : '#ef4444' }
-                      ]}>
-                        {deviceConnected ? 'Connected' : 'Disconnected'}
-                      </Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
                         Alert Monitoring:
                       </Text>
                       <Text style={[
@@ -198,7 +184,15 @@ export default function AlertsScreen() {
                         Update Frequency:
                       </Text>
                       <Text style={[styles.infoValue, isTablet && styles.tabletInfoValue]}>
-                        Every 10 seconds
+                        Every 15 seconds
+                      </Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
+                        Total Alerts:
+                      </Text>
+                      <Text style={[styles.infoValue, isTablet && styles.tabletInfoValue]}>
+                        {alerts.length}
                       </Text>
                     </View>
                   </View>
@@ -219,18 +213,6 @@ export default function AlertsScreen() {
                   </Text>
                   <View style={styles.infoRow}>
                     <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
-                      Device Connection:
-                    </Text>
-                    <Text style={[
-                      styles.infoValue,
-                      isTablet && styles.tabletInfoValue,
-                      { color: deviceConnected ? '#22c55e' : '#ef4444' }
-                    ]}>
-                      {deviceConnected ? 'Connected' : 'Disconnected'}
-                    </Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
                       Alert Monitoring:
                     </Text>
                     <Text style={[
@@ -246,7 +228,15 @@ export default function AlertsScreen() {
                       Update Frequency:
                     </Text>
                     <Text style={[styles.infoValue, isTablet && styles.tabletInfoValue]}>
-                      Every 10 seconds
+                      Every 15 seconds
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
+                      Total Alerts:
+                    </Text>
+                    <Text style={[styles.infoValue, isTablet && styles.tabletInfoValue]}>
+                      {alerts.length}
                     </Text>
                   </View>
                 </View>

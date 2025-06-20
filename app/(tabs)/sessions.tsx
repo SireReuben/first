@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusHeader } from '@/components/StatusHeader';
 import { SessionControls } from '@/components/SessionControls';
 import { SessionReport } from '@/components/SessionReport';
-import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { OfflineNotice } from '@/components/OfflineNotice';
 import { ResponsiveContainer } from '@/components/ResponsiveContainer';
 import { useDeviceState } from '@/hooks/useDeviceState';
@@ -95,7 +94,6 @@ export default function SessionsScreen() {
                 { marginBottom: isLandscapeTablet ? 0 : 16 }
               ]}>
                 <StatusHeader />
-                <ConnectionStatus isConnected={isConnected} />
                 {!isConnected && <OfflineNotice />}
                 <View style={[styles.card, isTablet && styles.tabletCard]}>
                   <Text style={[

@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusHeader } from '@/components/StatusHeader';
 import { DeviceControls } from '@/components/DeviceControls';
-import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { SessionRequiredNotice } from '@/components/SessionRequiredNotice';
 import { ResponsiveContainer } from '@/components/ResponsiveContainer';
 import { useDeviceState } from '@/hooks/useDeviceState';
@@ -73,7 +72,6 @@ export default function DashboardScreen() {
           >
             <ResponsiveContainer>
               <StatusHeader />
-              <ConnectionStatus isConnected={isConnected} />
               <SessionRequiredNotice />
             </ResponsiveContainer>
           </ScrollView>
@@ -107,7 +105,6 @@ export default function DashboardScreen() {
             <View style={getLayoutStyle()}>
               <View style={isTablet && isLandscape ? styles.leftColumn : null}>
                 <StatusHeader />
-                <ConnectionStatus isConnected={isConnected} />
                 <View style={[
                   styles.statusCard,
                   isTablet && styles.tabletStatusCard
