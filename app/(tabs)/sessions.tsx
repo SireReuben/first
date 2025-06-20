@@ -8,9 +8,21 @@ import { SessionReport } from '@/components/SessionReport';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { OfflineNotice } from '@/components/OfflineNotice';
 import { useDeviceState } from '@/hooks/useDeviceState';
+import { useAlerts } from '@/hooks/useAlerts';
 
 export default function SessionsScreen() {
   const { deviceState, sessionData, isConnected, startSession, endSession } = useDeviceState();
+  const { addSessionAlert } = useAlerts();
+
+  const handleStartSession = async () => {
+    await startSession();
+    addSessionAlert('success', 'Session Started', 'Device control session initiated successfully');
+  };
+
+  const handleEndSession = async () => {
+    await endSession();
+    addSessionAlert('info', 'Session Ended', 'Device control session terminated and data saved');
+  };
 
   return (
     <LinearGradient
@@ -35,8 +47,8 @@ export default function SessionsScreen() {
             </Text>
             <SessionControls
               sessionActive={deviceState.sessionActive}
-              onStartSession={startSession}
-              onEndSession={endSession}
+              onStartSession={handleStartSession}
+              onEndSession={handleEndSession}
               isConnected={isConnected}
             />
           </View>
@@ -52,7 +64,8 @@ export default function SessionsScreen() {
                 • Ensure device is powered on{'\n'}
                 • Connect to "AEROSPIN CONTROL" WiFi{'\n'}
                 • Start a session to access controls{'\n'}
-                • Dashboard will be available during active sessions
+                • Dashboard will be available during active sessions{'\n'}
+                • Brake positions are preserved during operations
               </Text>
             </View>
           )}
