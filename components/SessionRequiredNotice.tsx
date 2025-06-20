@@ -30,20 +30,12 @@ export function SessionRequiredNotice() {
       
       <View style={styles.infoBox}>
         <Text style={styles.infoTitle}>Why Sessions?</Text>
-        <View>
-          <Text style={styles.infoText}>
-            • Ensures safe operation with proper initialization
-          </Text>
-          <Text style={styles.infoText}>
-            • Logs all device operations for safety compliance
-          </Text>
-          <Text style={styles.infoText}>
-            • Prevents accidental device activation
-          </Text>
-          <Text style={styles.infoText}>
-            • Provides structured start/stop procedures
-          </Text>
-        </View>
+        <Text style={styles.infoText}>
+          • Ensures safe operation with proper initialization{'\n'}
+          • Logs all device operations for safety compliance{'\n'}
+          • Prevents accidental device activation{'\n'}
+          • Provides structured start/stop procedures
+        </Text>
       </View>
     </View>
   );

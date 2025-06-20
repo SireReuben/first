@@ -91,38 +91,16 @@ export default function SessionsScreen() {
                     ]}>
                       Ready to Start
                     </Text>
-                    <View>
-                      <Text style={[
-                        styles.infoText,
-                        isTablet && styles.tabletInfoText
-                      ]}>
-                        • Ensure device is powered on
-                      </Text>
-                      <Text style={[
-                        styles.infoText,
-                        isTablet && styles.tabletInfoText
-                      ]}>
-                        • Connect to "AEROSPIN CONTROL" WiFi
-                      </Text>
-                      <Text style={[
-                        styles.infoText,
-                        isTablet && styles.tabletInfoText
-                      ]}>
-                        • Start a session to access controls
-                      </Text>
-                      <Text style={[
-                        styles.infoText,
-                        isTablet && styles.tabletInfoText
-                      ]}>
-                        • Dashboard will be available during active sessions
-                      </Text>
-                      <Text style={[
-                        styles.infoText,
-                        isTablet && styles.tabletInfoText
-                      ]}>
-                        • Brake positions are preserved during operations
-                      </Text>
-                    </View>
+                    <Text style={[
+                      styles.infoText,
+                      isTablet && styles.tabletInfoText
+                    ]}>
+                      • Ensure device is powered on{'\n'}
+                      • Connect to "AEROSPIN CONTROL" WiFi{'\n'}
+                      • Start a session to access controls{'\n'}
+                      • Dashboard will be available during active sessions{'\n'}
+                      • Brake positions are preserved during operations
+                    </Text>
                   </View>
                 )}
               </View>

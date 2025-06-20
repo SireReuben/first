@@ -23,7 +23,7 @@ export function DeviceInfo() {
         </View>
       </View>
 
-      <View style={[styles.infoItem, styles.lastItem]}>
+      <View style={styles.infoItem}>
         <Activity size={20} color="#3b82f6" />
         <View style={styles.infoContent}>
           <Text style={styles.infoLabel}>Device Status</Text>
@@ -58,9 +58,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-  },
-  lastItem: {
-    borderBottomWidth: 0,
   },
   infoContent: {
     flex: 1,
