@@ -21,6 +21,7 @@ export default function WelcomeScreen() {
   const [showManualConnect, setShowManualConnect] = useState(false);
   const [hasTriedConnection, setHasTriedConnection] = useState(false);
   const [navigationError, setNavigationError] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
   const { isTablet, isLandscape, screenType } = useDeviceOrientation();
 
   const canProceed = Platform.OS === 'web' || (hasLocationPermission && hasNetworkAccess);
@@ -53,14 +54,14 @@ export default function WelcomeScreen() {
 
   // Show manual connect option based on connection attempts and platform
   useEffect(() => {
-    if (!canProceed) return;
+    if (!canProceed || isNavigating) return;
 
     let timer: NodeJS.Timeout;
 
     if (Platform.OS === 'web') {
       // For web, show manual connect after 5 seconds
       timer = setTimeout(() => {
-        if (!isConnected) {
+        if (!isConnected && !isNavigating) {
           setShowManualConnect(true);
           setHasTriedConnection(true);
         }
@@ -72,42 +73,44 @@ export default function WelcomeScreen() {
       } else {
         timer = setTimeout(() => {
           setHasTriedConnection(true);
-          if (!isConnected) {
+          if (!isConnected && !isNavigating) {
             setShowManualConnect(true);
           }
-        }, 10000); // Longer timeout for mobile
+        }, 8000); // Reduced timeout for mobile
       }
     }
 
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [isConnected, canProceed, connectionAttempts, hasTriedConnection]);
+  }, [isConnected, canProceed, connectionAttempts, hasTriedConnection, isNavigating]);
 
   // Auto-navigate when connected
   useEffect(() => {
-    if (isConnected && canProceed) {
+    if (isConnected && canProceed && !isNavigating) {
       const timer = setTimeout(() => {
         handleNavigation();
-      }, 2000);
+      }, 1500); // Reduced delay
       return () => clearTimeout(timer);
     }
-  }, [isConnected, canProceed]);
+  }, [isConnected, canProceed, isNavigating]);
 
   const handleNavigation = () => {
+    if (isNavigating) return;
+    
     try {
+      setIsNavigating(true);
       setNavigationError(null);
       
-      // Use replace for cleaner navigation stack
-      if (router.canGoBack()) {
-        router.replace('/(tabs)/sessions');
-      } else {
-        // If we can't go back, try push
-        router.push('/(tabs)/sessions');
-      }
+      console.log('Attempting navigation to sessions...');
+      
+      // Use push instead of replace for more reliable navigation
+      router.push('/(tabs)/sessions');
+      
     } catch (error) {
       console.error('Navigation error:', error);
       setNavigationError('Navigation failed. Please try again.');
+      setIsNavigating(false);
       
       // Fallback: try alternative navigation after delay
       setTimeout(() => {
@@ -116,13 +119,14 @@ export default function WelcomeScreen() {
         } catch (fallbackError) {
           console.error('Fallback navigation also failed:', fallbackError);
           setNavigationError('Unable to navigate. Please restart the app.');
+          setIsNavigating(false);
         }
       }, 1000);
     }
   };
 
   const handleManualConnect = () => {
-    if (!canProceed) {
+    if (!canProceed || isNavigating) {
       return;
     }
     
@@ -143,7 +147,7 @@ export default function WelcomeScreen() {
     }
     
     if (connectionAttempts > 0) {
-      return `Connection attempts: ${String(connectionAttempts)}. Ensure device is powered on and WiFi is connected to "AEROSPIN CONTROL"`;
+      return `Connection attempts: ${connectionAttempts}. Ensure device is powered on and WiFi is connected to "AEROSPIN CONTROL"`;
     }
     
     return 'Ensure your device WiFi is connected to "AEROSPIN CONTROL" network';
@@ -152,6 +156,10 @@ export default function WelcomeScreen() {
   const getStatusMessage = () => {
     if (navigationError) {
       return navigationError;
+    }
+    
+    if (isNavigating) {
+      return 'Loading application...';
     }
     
     if (!canProceed) {
@@ -258,13 +266,13 @@ export default function WelcomeScreen() {
                   {getStatusMessage()}
                 </Text>
                 
-                {/* Show loading spinner while trying to connect */}
-                {!isConnected && !showManualConnect && canProceed && !navigationError && (
+                {/* Show loading spinner while trying to connect or navigating */}
+                {(!isConnected && !showManualConnect && canProceed && !navigationError) || isNavigating ? (
                   <LoadingSpinner isVisible={true} />
-                )}
+                ) : null}
                 
                 {/* Show connection details */}
-                {(connectionAttempts > 0 || !canProceed) && !navigationError && (
+                {(connectionAttempts > 0 || !canProceed) && !navigationError && !isNavigating && (
                   <Text style={[
                     styles.detailText,
                     isTablet && styles.tabletDetailText
@@ -275,7 +283,7 @@ export default function WelcomeScreen() {
               </View>
               
               {/* Success message when connected */}
-              {isConnected && !navigationError && (
+              {isConnected && !navigationError && !isNavigating && (
                 <Animated.View style={styles.successMessage}>
                   <Text style={[
                     styles.successText,
@@ -293,7 +301,7 @@ export default function WelcomeScreen() {
               )}
 
               {/* Manual connect option */}
-              {!isConnected && showManualConnect && canProceed && (
+              {!isConnected && showManualConnect && canProceed && !isNavigating && (
                 <View style={styles.manualConnectContainer}>
                   <Text style={[
                     styles.manualConnectText,
@@ -326,14 +334,18 @@ export default function WelcomeScreen() {
               )}
 
               {/* Navigation error retry */}
-              {navigationError && (
+              {navigationError && !isNavigating && (
                 <View style={styles.errorContainer}>
                   <TouchableOpacity 
                     style={[
                       styles.retryButton,
                       isTablet && styles.tabletRetryButton
                     ]}
-                    onPress={handleNavigation}
+                    onPress={() => {
+                      setNavigationError(null);
+                      setIsNavigating(false);
+                      handleNavigation();
+                    }}
                   >
                     <Text style={[
                       styles.retryButtonText,
