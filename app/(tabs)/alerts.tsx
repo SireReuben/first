@@ -10,6 +10,16 @@ import { useAlerts } from '@/hooks/useAlerts';
 import { useDeviceState } from '@/hooks/useDeviceState';
 import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 
+interface Alert {
+  id: string;
+  type: 'success' | 'warning' | 'error' | 'info';
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+  source: 'local' | 'device';
+}
+
 interface AlertStatProps {
   count: number;
   label: string;
