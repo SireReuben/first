@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert as RNAlert } from 'react-native';
-import { CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Circle as XCircle, Info, Trash2, Eye, EyeOff } from 'lucide-react-native';
+import { CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Circle as XCircle, Info, Trash2, Eye, EyeOff, Wrench, Smartphone } from 'lucide-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 interface Alert {
@@ -115,9 +115,16 @@ export function AlertItem({ alert, onMarkAsRead, onDeleteAlert }: AlertItemProps
                 {alert.title}
               </Text>
               <View style={styles.alertMeta}>
-                <Text style={styles.alertSource}>
-                  {alert.source === 'device' ? '🔧 Device' : '📱 App'}
-                </Text>
+                <View style={styles.alertSource}>
+                  {alert.source === 'device' ? (
+                    <Wrench size={14} color="#6b7280" />
+                  ) : (
+                    <Smartphone size={14} color="#6b7280" />
+                  )}
+                  <Text style={styles.alertSourceText}>
+                    {alert.source === 'device' ? 'Device' : 'App'}
+                  </Text>
+                </View>
                 <Text style={styles.alertTimestamp}>
                   {formatTimestamp(alert.timestamp)}
                 </Text>
@@ -205,6 +212,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   alertSource: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  alertSourceText: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#6b7280',
