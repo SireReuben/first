@@ -13,6 +13,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#1e3a8a"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.aerospin.control"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, Image, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { WifiStatus } from '@/components/WifiStatus';
@@ -14,8 +14,19 @@ export default function WelcomeScreen() {
   const [logoAnim] = useState(new Animated.Value(0));
   const { isConnected } = useDeviceState();
   const [showManualConnect, setShowManualConnect] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    // Add a small delay to ensure everything is loaded before starting animations
+    const initTimer = setTimeout(() => {
+      setIsInitialized(true);
+      startAnimations();
+    }, 500);
+
+    return () => clearTimeout(initTimer);
+  }, []);
+
+  const startAnimations = () => {
     // Start welcome animation sequence
     Animated.sequence([
       // First animate the logo
@@ -39,30 +50,47 @@ export default function WelcomeScreen() {
         }),
       ])
     ]).start();
+  };
 
-    // Show manual connect option after 5 seconds if not connected
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    // Show manual connect option after 8 seconds if not connected (longer for mobile)
     const timer = setTimeout(() => {
       if (!isConnected) {
         setShowManualConnect(true);
       }
-    }, 5000);
+    }, 8000);
 
     return () => clearTimeout(timer);
-  }, [isConnected]);
+  }, [isConnected, isInitialized]);
 
   // Auto-navigate when connected
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && isInitialized) {
       const timer = setTimeout(() => {
         router.replace('/(tabs)/sessions');
-      }, 2000);
+      }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [isConnected]);
+  }, [isConnected, isInitialized]);
 
   const handleManualConnect = () => {
     router.replace('/(tabs)/sessions');
   };
+
+  if (!isInitialized) {
+    return (
+      <LinearGradient
+        colors={['#1e3a8a', '#3b82f6', '#60a5fa']}
+        style={styles.container}
+      >
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Initializing AEROSPIN...</Text>
+        </View>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -125,7 +153,10 @@ export default function WelcomeScreen() {
                 Unable to auto-connect to device
               </Text>
               <Text style={styles.manualConnectSubtext}>
-                Make sure you're connected to "AEROSPIN CONTROL" WiFi network
+                {Platform.OS === 'web' 
+                  ? 'Make sure you\'re connected to "AEROSPIN CONTROL" WiFi network'
+                  : 'Ensure your device WiFi is connected to "AEROSPIN CONTROL" network'
+                }
               </Text>
               <TouchableOpacity 
                 style={styles.manualConnectButton}
@@ -157,6 +188,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#e0f2fe',
   },
   content: {
     flex: 1,
@@ -221,11 +262,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 8,
   },
-  loadingText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#e0f2fe',
-  },
   manualConnectContainer: {
     alignItems: 'center',
     marginTop: 24,
@@ -243,6 +279,7 @@ const styles = StyleSheet.create({
     color: '#e0f2fe',
     textAlign: 'center',
     marginBottom: 24,
+    paddingHorizontal: 20,
   },
   manualConnectButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',

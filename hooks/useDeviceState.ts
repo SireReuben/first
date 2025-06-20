@@ -32,13 +32,19 @@ export function useDeviceState() {
     events: [],
   });
 
-  // Check connection status with offline-first approach
+  // Check connection status with offline-first approach and better error handling
   useEffect(() => {
+    let connectionCheckInterval: NodeJS.Timeout;
+    let isComponentMounted = true;
+
     const checkConnection = async () => {
+      // Don't run connection checks if component is unmounted
+      if (!isComponentMounted) return;
+
       try {
         // Create AbortController for manual timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // Shorter timeout for local device
+        const timeoutId = setTimeout(() => controller.abort(), 2000); // Shorter timeout for mobile
         
         const response = await fetch(`${ARDUINO_BASE_URL}/ping`, {
           method: 'GET',
@@ -48,24 +54,28 @@ export function useDeviceState() {
         // Clear timeout if request completes successfully
         clearTimeout(timeoutId);
         
-        if (response.ok) {
+        if (response.ok && isComponentMounted) {
           setIsConnected(true);
           // Fetch current device status
           await fetchDeviceStatus();
-        } else {
+        } else if (isComponentMounted) {
           setIsConnected(false);
         }
       } catch (error) {
         // Don't log connection errors in offline mode - this is expected
-        setIsConnected(false);
+        if (isComponentMounted) {
+          setIsConnected(false);
+        }
       }
     };
 
     const fetchDeviceStatus = async () => {
+      if (!isComponentMounted) return;
+
       try {
         // Create AbortController for manual timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
         
         const response = await fetch(`${ARDUINO_BASE_URL}/status`, {
           signal: controller.signal,
@@ -74,7 +84,7 @@ export function useDeviceState() {
         // Clear timeout if request completes successfully
         clearTimeout(timeoutId);
         
-        if (response.ok) {
+        if (response.ok && isComponentMounted) {
           const statusText = await response.text();
           parseDeviceStatus(statusText);
         }
@@ -83,20 +93,41 @@ export function useDeviceState() {
       }
     };
 
-    // Initial connection check
-    checkConnection();
+    // Initial connection check with delay to prevent blocking app startup
+    const initialCheck = setTimeout(() => {
+      if (isComponentMounted) {
+        checkConnection();
+      }
+    }, 2000);
 
-    // Set up periodic connection monitoring with longer intervals for offline operation
-    const connectionInterval = setInterval(checkConnection, 10000); // Check every 10 seconds
+    // Set up periodic connection monitoring with longer intervals for mobile
+    const startPeriodicChecks = setTimeout(() => {
+      if (isComponentMounted) {
+        connectionCheckInterval = setInterval(checkConnection, 15000); // Check every 15 seconds
+      }
+    }, 5000);
 
-    return () => clearInterval(connectionInterval);
+    return () => {
+      isComponentMounted = false;
+      clearTimeout(initialCheck);
+      clearTimeout(startPeriodicChecks);
+      if (connectionCheckInterval) {
+        clearInterval(connectionCheckInterval);
+      }
+    };
   }, []);
 
   // Update session data when session is active
   useEffect(() => {
     if (!deviceState.sessionActive) return;
 
+    let durationInterval: NodeJS.Timeout;
+    let sessionInterval: NodeJS.Timeout;
+    let isComponentMounted = true;
+
     const updateSessionData = () => {
+      if (!isComponentMounted) return;
+      
       setSessionData(prev => ({
         ...prev,
         duration: calculateDuration(prev.startTime),
@@ -104,15 +135,17 @@ export function useDeviceState() {
     };
 
     // Update duration every second
-    const durationInterval = setInterval(updateSessionData, 1000);
+    durationInterval = setInterval(updateSessionData, 1000);
 
     // Fetch session log if connected
     if (isConnected) {
       const fetchSessionLog = async () => {
+        if (!isComponentMounted) return;
+
         try {
           // Create AbortController for manual timeout
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
           
           const response = await fetch(`${ARDUINO_BASE_URL}/getSessionLog`, {
             signal: controller.signal,
@@ -121,7 +154,7 @@ export function useDeviceState() {
           // Clear timeout if request completes successfully
           clearTimeout(timeoutId);
           
-          if (response.ok) {
+          if (response.ok && isComponentMounted) {
             const logData = await response.text();
             const events = logData.split('\n').filter(line => line.trim());
             
@@ -135,14 +168,14 @@ export function useDeviceState() {
         }
       };
 
-      const sessionInterval = setInterval(fetchSessionLog, 5000); // Less frequent updates
-      return () => {
-        clearInterval(durationInterval);
-        clearInterval(sessionInterval);
-      };
+      sessionInterval = setInterval(fetchSessionLog, 10000); // Less frequent updates for mobile
     }
 
-    return () => clearInterval(durationInterval);
+    return () => {
+      isComponentMounted = false;
+      if (durationInterval) clearInterval(durationInterval);
+      if (sessionInterval) clearInterval(sessionInterval);
+    };
   }, [deviceState.sessionActive, isConnected]);
 
   const parseDeviceStatus = (statusText: string) => {
@@ -213,7 +246,7 @@ export function useDeviceState() {
     }
   };
 
-  const sendArduinoCommand = async (endpoint: string, timeout: number = 5000) => {
+  const sendArduinoCommand = async (endpoint: string, timeout: number = 3000) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     
@@ -312,17 +345,17 @@ export function useDeviceState() {
     if (isConnected) {
       try {
         // Send reset command to Arduino with longer timeout for restart
-        await sendArduinoCommand('/reset', 10000);
+        await sendArduinoCommand('/reset', 8000);
         
         // Wait for device to restart and reconnect
         setTimeout(async () => {
           // Try to reconnect after reset
           let reconnectAttempts = 0;
-          const maxAttempts = 10;
+          const maxAttempts = 8;
           
           const attemptReconnect = async () => {
             try {
-              const response = await sendArduinoCommand('/ping', 3000);
+              const response = await sendArduinoCommand('/ping', 2000);
               if (response.ok) {
                 setIsConnected(true);
                 addSessionEvent('Device reset completed - reconnected');
@@ -334,7 +367,7 @@ export function useDeviceState() {
             
             reconnectAttempts++;
             if (reconnectAttempts < maxAttempts) {
-              setTimeout(attemptReconnect, 2000); // Try again in 2 seconds
+              setTimeout(attemptReconnect, 3000); // Try again in 3 seconds
             } else {
               addSessionEvent('Device reset completed - manual reconnection required');
             }
@@ -380,9 +413,9 @@ export function useDeviceState() {
     if (isConnected) {
       try {
         // Send emergency commands in sequence with short timeouts for immediate response
-        await sendArduinoCommand('/speed?value=0', 2000);
-        await sendArduinoCommand('/direction?state=none', 2000);
-        await sendArduinoCommand('/brake?action=pull&state=on', 2000);
+        await sendArduinoCommand('/speed?value=0', 1500);
+        await sendArduinoCommand('/direction?state=none', 1500);
+        await sendArduinoCommand('/brake?action=pull&state=on', 1500);
         
         addSessionEvent('Emergency stop commands sent to device');
       } catch (error) {
