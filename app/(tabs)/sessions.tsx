@@ -56,12 +56,12 @@ export default function SessionsScreen() {
   }, [refreshSessionData]);
 
   const readyInstructions = useMemo(() => [
-    '• Ensure device is powered on',
-    '• Connect to "AEROSPIN CONTROL" WiFi',
-    '• Start a session to access controls',
-    '• Dashboard will be available during active sessions',
-    '• Brake positions are preserved during operations'
-  ].join('\n'), []);
+    'Ensure device is powered on',
+    'Connect to "AEROSPIN CONTROL" WiFi',
+    'Start a session to access controls',
+    'Dashboard will be available during active sessions',
+    'Brake positions are preserved during operations'
+  ], []);
 
   return (
     <LinearGradient
@@ -130,13 +130,17 @@ export default function SessionsScreen() {
                     ]}>
                       Ready to Start
                     </Text>
-                    <Text style={[
-                      styles.infoText,
-                      isTablet && styles.tabletInfoText,
-                      styles.text
-                    ]}>
-                      {readyInstructions}
-                    </Text>
+                    <View style={styles.instructionsList}>
+                      {readyInstructions.map((instruction, index) => (
+                        <Text key={index} style={[
+                          styles.infoText,
+                          isTablet && styles.tabletInfoText,
+                          styles.text
+                        ]}>
+                          • {instruction}
+                        </Text>
+                      ))}
+                    </View>
                   </View>
                 )}
               </View>
@@ -244,6 +248,9 @@ const styles = StyleSheet.create({
   tabletInfoTitle: {
     fontSize: 22,
     marginBottom: 16,
+  },
+  instructionsList: {
+    gap: 4,
   },
   infoText: {
     fontSize: 14,

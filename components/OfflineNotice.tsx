@@ -3,6 +3,13 @@ import { View, Text, StyleSheet } from 'react-native';
 import { WifiOff, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 
 export function OfflineNotice() {
+  const steps = [
+    'Ensure device is powered on',
+    'Connect to "AEROSPIN CONTROL" WiFi network',
+    'Wait for automatic connection',
+    'Session controls will be enabled when connected'
+  ];
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -22,12 +29,13 @@ export function OfflineNotice() {
           To connect to your AEROSPIN device:
         </Text>
         
-        <Text style={styles.stepText}>
-          1. Ensure device is powered on{'\n'}
-          2. Connect to "AEROSPIN CONTROL" WiFi network{'\n'}
-          3. Wait for automatic connection{'\n'}
-          4. Session controls will be enabled when connected
-        </Text>
+        <View style={styles.stepsList}>
+          {steps.map((step, index) => (
+            <Text key={index} style={styles.stepText}>
+              {index + 1}. {step}
+            </Text>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -73,6 +81,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#7f1d1d',
     marginBottom: 4,
+  },
+  stepsList: {
+    gap: 2,
   },
   stepText: {
     fontSize: 13,
