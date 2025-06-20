@@ -29,6 +29,9 @@ const FALLBACK_ENDPOINTS = [
   'http://192.168.1.1', // Some devices use this as fallback
 ];
 
+// Invalid IP addresses that should not be used for connection attempts
+const INVALID_IPS = ['0.0.0.0', '127.0.0.1', '0.0.0.1'];
+
 export function useDeviceState() {
   const [deviceState, setDeviceState] = useState<DeviceState>({
     direction: 'None',
@@ -67,6 +70,13 @@ export function useDeviceState() {
       // Get current IP address
       const ipAddress = await Network.getIpAddressAsync();
       setNetworkInfo(`Current IP: ${ipAddress}`);
+      
+      // Check if the IP address is invalid
+      if (INVALID_IPS.includes(ipAddress)) {
+        console.log('Invalid IP address detected:', ipAddress);
+        setNetworkInfo(`Invalid IP detected: ${ipAddress} - using fallback endpoints`);
+        return null;
+      }
       
       // Check if we're on Arduino's network
       if (ipAddress.startsWith(ARDUINO_NETWORK_PREFIX)) {
