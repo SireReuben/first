@@ -14,6 +14,17 @@ export default function TabLayout() {
         tabBarIcon: ({ color }) => (
           <Play size={isTablet ? 26 : 22} color={color} />
         ),
+        tabBarLabel: ({ color }) => (
+          <Text style={{
+            fontSize: isTablet ? 14 : 12,
+            fontFamily: 'Inter-Medium',
+            marginTop: 4,
+            marginBottom: 4,
+            color: color,
+          }}>
+            Sessions
+          </Text>
+        ),
       },
     },
     {
@@ -22,6 +33,17 @@ export default function TabLayout() {
         title: 'Dashboard',
         tabBarIcon: ({ color }) => (
           <Gauge size={isTablet ? 26 : 22} color={color} />
+        ),
+        tabBarLabel: ({ color }) => (
+          <Text style={{
+            fontSize: isTablet ? 14 : 12,
+            fontFamily: 'Inter-Medium',
+            marginTop: 4,
+            marginBottom: 4,
+            color: color,
+          }}>
+            Dashboard
+          </Text>
         ),
       },
     },
@@ -32,6 +54,17 @@ export default function TabLayout() {
         tabBarIcon: ({ color }) => (
           <Settings size={isTablet ? 26 : 22} color={color} />
         ),
+        tabBarLabel: ({ color }) => (
+          <Text style={{
+            fontSize: isTablet ? 14 : 12,
+            fontFamily: 'Inter-Medium',
+            marginTop: 4,
+            marginBottom: 4,
+            color: color,
+          }}>
+            Settings
+          </Text>
+        ),
       },
     },
     {
@@ -40,6 +73,17 @@ export default function TabLayout() {
         title: 'Alerts',
         tabBarIcon: ({ color }) => (
           <Bell size={isTablet ? 26 : 22} color={color} />
+        ),
+        tabBarLabel: ({ color }) => (
+          <Text style={{
+            fontSize: isTablet ? 14 : 12,
+            fontFamily: 'Inter-Medium',
+            marginTop: 4,
+            marginBottom: 4,
+            color: color,
+          }}>
+            Alerts
+          </Text>
         ),
       },
     },
@@ -60,12 +104,6 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: '#ffffff',
         tabBarInactiveTintColor: '#93c5fd',
-        tabBarLabelStyle: {
-          fontSize: isTablet ? 14 : 12,
-          fontFamily: 'Inter-Medium',
-          marginTop: 4,
-          marginBottom: 4,
-        },
         tabBarIconStyle: {
           marginTop: 4,
         },
@@ -87,5 +125,6 @@ interface TabScreenConfig {
   options: {
     title: string;
     tabBarIcon: (props: { color: string }) => React.ReactNode;
+    tabBarLabel: (props: { color: string }) => React.ReactNode;
   };
 }
