@@ -16,7 +16,10 @@ export function SettingsSection({ title, items }: SettingsSectionProps) {
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
       {items.map((item, index) => (
-        <View key={index} style={styles.item}>
+        <View key={index} style={[
+          styles.item,
+          index === items.length - 1 && styles.lastItem
+        ]}>
           <Text style={styles.label}>{item.label}</Text>
           <Text style={styles.value}>{item.value}</Text>
         </View>
@@ -50,6 +53,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+  },
+  lastItem: {
+    borderBottomWidth: 0,
   },
   label: {
     fontSize: 14,
