@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Circle, RefreshCw, Wifi, AlertTriangle } from 'lucide-react-native';
+import { Circle, RefreshCw, Wifi, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 import { useDeviceState } from '@/hooks/useDeviceState';
 
 interface ConnectionStatusProps {
