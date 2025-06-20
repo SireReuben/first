@@ -7,9 +7,50 @@ import { DeviceControls } from '@/components/DeviceControls';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { SessionRequiredNotice } from '@/components/SessionRequiredNotice';
 import { useDeviceState } from '@/hooks/useDeviceState';
+import { useAlerts } from '@/hooks/useAlerts';
 
 export default function DashboardScreen() {
-  const { deviceState, isConnected, updateDeviceState, emergencyStop, resetDevice } = useDeviceState();
+  const { 
+    deviceState, 
+    isConnected, 
+    updateDeviceState, 
+    emergencyStop, 
+    resetDevice, 
+    releaseBrake 
+  } = useDeviceState();
+  
+  const { addOperationAlert, addSafetyAlert } = useAlerts();
+
+  // Enhanced device control handlers with alert integration
+  const handleUpdateDeviceState = async (updates: Partial<typeof deviceState>) => {
+    await updateDeviceState(updates);
+    
+    // Add operation alerts
+    Object.entries(updates).forEach(([key, value]) => {
+      if (key === 'direction' && value !== 'None') {
+        addOperationAlert(`Motor direction set to ${value}`, 'success');
+      } else if (key === 'brake' && value !== 'None') {
+        addOperationAlert(`${value} brake applied`, 'success');
+      } else if (key === 'speed' && typeof value === 'number') {
+        addOperationAlert(`Motor speed set to ${value}%`, 'success');
+      }
+    });
+  };
+
+  const handleEmergencyStop = async () => {
+    await emergencyStop();
+    addSafetyAlert('Emergency stop activated - All operations halted');
+  };
+
+  const handleResetDevice = async () => {
+    await resetDevice();
+    addOperationAlert('Device reset completed', 'success');
+  };
+
+  const handleReleaseBrake = async () => {
+    await releaseBrake();
+    addOperationAlert('Brake released', 'success');
+  };
 
   // Show session required notice if no active session
   if (!deviceState.sessionActive) {
@@ -88,9 +129,10 @@ export default function DashboardScreen() {
 
           <DeviceControls 
             deviceState={deviceState}
-            onUpdateState={updateDeviceState}
-            onEmergencyStop={emergencyStop}
-            onReset={resetDevice}
+            onUpdateState={handleUpdateDeviceState}
+            onEmergencyStop={handleEmergencyStop}
+            onReset={handleResetDevice}
+            onReleaseBrake={handleReleaseBrake}
             disabled={!isConnected}
           />
 
@@ -99,6 +141,7 @@ export default function DashboardScreen() {
             <Text style={styles.warningText}>
               Always ensure proper safety protocols are followed when operating the device. 
               Monitor all operations and be prepared to use emergency stop if needed.
+              The brake position will be preserved during emergency stops and device resets.
             </Text>
           </View>
         </ScrollView>

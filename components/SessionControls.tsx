@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Play, Square, Lock, RotateCcw, WifiOff } from 'lucide-react-native';
+import { Play, Square, WifiOff, Info } from 'lucide-react-native';
+import { router } from 'expo-router';
 
 interface SessionControlsProps {
   sessionActive: boolean;
@@ -13,10 +14,19 @@ export function SessionControls({ sessionActive, onStartSession, onEndSession, i
   const handleStartSession = () => {
     Alert.alert(
       'Start Session',
-      'Starting a session will enable device controls and begin logging all operations. Continue?',
+      'Starting a session will enable device controls and begin logging all operations. You will be automatically taken to the dashboard. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Start Session', onPress: onStartSession },
+        { 
+          text: 'Start Session', 
+          onPress: () => {
+            onStartSession();
+            // Navigate to dashboard after starting session
+            setTimeout(() => {
+              router.push('/(tabs)');
+            }, 500);
+          }
+        },
       ]
     );
   };
@@ -29,14 +39,6 @@ export function SessionControls({ sessionActive, onStartSession, onEndSession, i
         { text: 'Cancel', style: 'cancel' },
         { text: 'End Session', onPress: onEndSession, style: 'destructive' },
       ]
-    );
-  };
-
-  const handleLockScreen = () => {
-    Alert.alert(
-      'Screen Lock',
-      'Screen lock feature will be available in a future update. This will prevent accidental touches during operations.',
-      [{ text: 'OK' }]
     );
   };
 
@@ -73,20 +75,13 @@ export function SessionControls({ sessionActive, onStartSession, onEndSession, i
 
       <View style={styles.secondaryButtonRow}>
         <TouchableOpacity
-          style={[styles.button, styles.lockButton, styles.secondaryButton]}
-          onPress={handleLockScreen}
-        >
-          <Lock size={16} color="#ffffff" />
-          <Text style={styles.secondaryButtonText}>Lock</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={[styles.button, styles.infoButton, styles.secondaryButton]}
           onPress={() => Alert.alert(
             'Session Info',
-            'Sessions provide:\n• Safe operation procedures\n• Complete operation logging\n• Emergency stop capabilities\n• Device state management'
+            'Sessions provide:\n• Safe operation procedures\n• Complete operation logging\n• Emergency stop capabilities\n• Device state management\n• Automatic dashboard access'
           )}
         >
+          <Info size={16} color="#ffffff" />
           <Text style={styles.secondaryButtonText}>Info</Text>
         </TouchableOpacity>
       </View>
@@ -103,7 +98,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
   },
   button: {
     flexDirection: 'row',
@@ -125,9 +120,6 @@ const styles = StyleSheet.create({
   endButton: {
     backgroundColor: '#ef4444',
     minWidth: 200,
-  },
-  lockButton: {
-    backgroundColor: '#f59e0b',
   },
   infoButton: {
     backgroundColor: '#6b7280',

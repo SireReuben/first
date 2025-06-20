@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { ArrowUp, ArrowDown, Square, Play, Pause, TriangleAlert as AlertTriangle } from 'lucide-react-native';
+import { ArrowUp, ArrowDown, Square, TriangleAlert as AlertTriangle, Minus, Plus } from 'lucide-react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 interface DeviceState {
   direction: string;
@@ -14,10 +15,30 @@ interface DeviceControlsProps {
   onUpdateState: (updates: Partial<DeviceState>) => void;
   onEmergencyStop: () => void;
   onReset: () => void;
+  onReleaseBrake: () => void;
   disabled: boolean;
 }
 
-export function DeviceControls({ deviceState, onUpdateState, onEmergencyStop, onReset, disabled }: DeviceControlsProps) {
+export function DeviceControls({ 
+  deviceState, 
+  onUpdateState, 
+  onEmergencyStop, 
+  onReset, 
+  onReleaseBrake,
+  disabled 
+}: DeviceControlsProps) {
+  const [sliderValue, setSliderValue] = useState(deviceState.speed);
+  const speedBarWidth = useSharedValue(deviceState.speed);
+
+  const animatedSpeedBarStyle = useAnimatedStyle(() => {
+    return {
+      width: withSpring(`${speedBarWidth.value}%`, {
+        damping: 15,
+        stiffness: 150,
+      }),
+    };
+  });
+
   const handleDirectionChange = (direction: string) => {
     if (disabled) return;
     
@@ -63,16 +84,45 @@ export function DeviceControls({ deviceState, onUpdateState, onEmergencyStop, on
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Confirm', 
-          onPress: () => onUpdateState({ speed }) 
+          onPress: () => {
+            setSliderValue(speed);
+            speedBarWidth.value = speed;
+            onUpdateState({ speed });
+          }
         },
       ]
     );
   };
 
+  const handleSliderSpeedChange = () => {
+    if (disabled) return;
+    
+    Alert.alert(
+      'Confirm Speed Change',
+      `Set motor speed to ${sliderValue}%?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Confirm', 
+          onPress: () => {
+            speedBarWidth.value = sliderValue;
+            onUpdateState({ speed: sliderValue });
+          }
+        },
+      ]
+    );
+  };
+
+  const adjustSliderValue = (delta: number) => {
+    if (disabled) return;
+    const newValue = Math.max(0, Math.min(100, sliderValue + delta));
+    setSliderValue(newValue);
+  };
+
   const handleEmergencyStop = () => {
     Alert.alert(
       'EMERGENCY STOP',
-      'This will immediately stop all motor operations, set speed to 0, and apply pull brake. This action cannot be undone. Continue?',
+      'This will immediately stop all motor operations and set speed to 0. The current brake position will be maintained. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -87,7 +137,7 @@ export function DeviceControls({ deviceState, onUpdateState, onEmergencyStop, on
   const handleReset = () => {
     Alert.alert(
       'Reset Device',
-      'This will reset the Arduino device, restart all systems, and end the current session. The device will need to reconnect. Continue?',
+      'This will reset the Arduino device, restart all systems, and end the current session. The brake position will be preserved. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -98,6 +148,28 @@ export function DeviceControls({ deviceState, onUpdateState, onEmergencyStop, on
       ]
     );
   };
+
+  const handleReleaseBrake = () => {
+    if (disabled) return;
+    
+    Alert.alert(
+      'Release Brake',
+      'This will release the current brake and set it to off position. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Release Brake', 
+          onPress: onReleaseBrake
+        },
+      ]
+    );
+  };
+
+  // Update slider when device state changes
+  React.useEffect(() => {
+    setSliderValue(deviceState.speed);
+    speedBarWidth.value = deviceState.speed;
+  }, [deviceState.speed]);
 
   return (
     <View style={styles.container}>
@@ -192,23 +264,81 @@ export function DeviceControls({ deviceState, onUpdateState, onEmergencyStop, on
             </Text>
           </TouchableOpacity>
         </View>
+        
+        {/* Release Brake Button */}
+        {deviceState.brake !== 'None' && (
+          <View style={styles.releaseButtonContainer}>
+            <TouchableOpacity
+              style={[styles.releaseBrakeButton, disabled && styles.disabledButton]}
+              onPress={handleReleaseBrake}
+              disabled={disabled}
+            >
+              <Text style={styles.releaseBrakeButtonText}>Release Brake</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Speed Controls */}
       <View style={styles.controlSection}>
         <Text style={styles.controlLabel}>Motor Speed</Text>
+        
+        {/* Speed Display and Bar */}
         <View style={styles.speedContainer}>
           <View style={styles.speedBar}>
-            <View 
-              style={[
-                styles.speedFill,
-                { width: `${deviceState.speed}%` }
-              ]} 
-            />
+            <Animated.View style={[styles.speedFill, animatedSpeedBarStyle]} />
           </View>
           <Text style={styles.speedText}>{deviceState.speed}%</Text>
         </View>
         
+        {/* Speed Slider Controls */}
+        <View style={styles.sliderContainer}>
+          <Text style={styles.sliderLabel}>Set Speed: {sliderValue}%</Text>
+          <View style={styles.sliderControls}>
+            <TouchableOpacity
+              style={[styles.sliderButton, disabled && styles.disabledButton]}
+              onPress={() => adjustSliderValue(-5)}
+              disabled={disabled}
+            >
+              <Minus size={16} color="#ffffff" />
+            </TouchableOpacity>
+            
+            <View style={styles.sliderBarContainer}>
+              <View style={styles.sliderBar}>
+                <View 
+                  style={[
+                    styles.sliderFill,
+                    { width: `${sliderValue}%` }
+                  ]} 
+                />
+                <View 
+                  style={[
+                    styles.sliderThumb,
+                    { left: `${sliderValue}%` }
+                  ]} 
+                />
+              </View>
+            </View>
+            
+            <TouchableOpacity
+              style={[styles.sliderButton, disabled && styles.disabledButton]}
+              onPress={() => adjustSliderValue(5)}
+              disabled={disabled}
+            >
+              <Plus size={16} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity
+            style={[styles.applySpeedButton, disabled && styles.disabledButton]}
+            onPress={handleSliderSpeedChange}
+            disabled={disabled}
+          >
+            <Text style={styles.applySpeedButtonText}>Apply Speed</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Quick Speed Buttons */}
         <View style={styles.speedButtons}>
           {[0, 25, 50, 75, 100].map((speed) => (
             <TouchableOpacity
@@ -351,6 +481,21 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginLeft: 4,
   },
+  releaseButtonContainer: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  releaseBrakeButton: {
+    backgroundColor: '#6b7280',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  releaseBrakeButtonText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+  },
   speedContainer: {
     alignItems: 'center',
     marginBottom: 16,
@@ -372,6 +517,64 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: '#ef4444',
+  },
+  sliderContainer: {
+    marginBottom: 16,
+  },
+  sliderLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  sliderControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sliderButton: {
+    backgroundColor: '#6366f1',
+    padding: 8,
+    borderRadius: 6,
+  },
+  sliderBarContainer: {
+    flex: 1,
+    marginHorizontal: 12,
+  },
+  sliderBar: {
+    height: 20,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 10,
+    position: 'relative',
+  },
+  sliderFill: {
+    height: '100%',
+    backgroundColor: '#6366f1',
+    borderRadius: 10,
+  },
+  sliderThumb: {
+    position: 'absolute',
+    top: -2,
+    width: 24,
+    height: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    marginLeft: -12,
+  },
+  applySpeedButton: {
+    backgroundColor: '#1e40af',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignSelf: 'center',
+  },
+  applySpeedButtonText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Bold',
+    color: '#ffffff',
   },
   speedButtons: {
     flexDirection: 'row',
