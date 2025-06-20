@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusHeader } from '@/components/StatusHeader';
@@ -10,6 +10,60 @@ import { useAlerts } from '@/hooks/useAlerts';
 import { useDeviceState } from '@/hooks/useDeviceState';
 import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 
+interface AlertStatProps {
+  count: number;
+  label: string;
+  isTablet?: boolean;
+  highlight?: boolean;
+}
+
+const AlertStat = ({ count, label, isTablet, highlight }: AlertStatProps) => (
+  <View style={[styles.statItem, isTablet && styles.tabletStatItem]}>
+    <Text style={[
+      styles.statValue, 
+      isTablet && styles.tabletStatValue,
+      highlight && styles.highlightValue
+    ]}>
+      {count}
+    </Text>
+    <Text style={[styles.statLabel, isTablet && styles.tabletStatLabel]}>
+      {label}
+    </Text>
+  </View>
+);
+
+const AlertStatsSection = ({ alerts, unreadCount, isTablet }: {
+  alerts: Alert[];
+  unreadCount: number;
+  isTablet: boolean;
+}) => {
+  const stats = useMemo(() => [
+    { count: alerts.length, label: 'Total' },
+    { count: unreadCount, label: 'Unread', highlight: unreadCount > 0 },
+    { count: alerts.filter(a => a.type === 'error').length, label: 'Errors', highlight: true },
+    { count: alerts.filter(a => a.source === 'device').length, label: 'Device' }
+  ], [alerts, unreadCount]);
+
+  return (
+    <View style={[styles.statsCard, isTablet && styles.tabletStatsCard]}>
+      <Text style={[styles.statsTitle, isTablet && styles.tabletStatsTitle]}>
+        Alert Statistics
+      </Text>
+      <View style={[styles.statsGrid, isTablet && styles.tabletStatsGrid]}>
+        {stats.map((stat) => (
+          <AlertStat
+            key={stat.label}
+            count={stat.count}
+            label={stat.label}
+            isTablet={isTablet}
+            highlight={stat.highlight}
+          />
+        ))}
+      </View>
+    </View>
+  );
+};
+
 export default function AlertsScreen() {
   const { 
     alerts, 
@@ -18,22 +72,29 @@ export default function AlertsScreen() {
     markAsRead, 
     deleteAlert, 
     clearAllAlerts, 
-    markAllAsRead 
+    markAllAsRead,
+    refreshAlerts
   } = useAlerts();
   
   const { isConnected: deviceConnected } = useDeviceState();
   const { isTablet, isLandscape, screenType } = useDeviceOrientation();
+  const [refreshing, setRefreshing] = React.useState(false);
 
-  const getLayoutStyle = () => {
-    if (isTablet && isLandscape && screenType !== 'phone') {
-      return styles.tabletLandscapeLayout;
-    }
-    return null;
-  };
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    refreshAlerts().finally(() => setRefreshing(false));
+  }, [refreshAlerts]);
+
+  const isLandscapeTablet = isTablet && isLandscape && screenType !== 'phone';
+  const errorCount = useMemo(() => alerts.filter(a => a.type === 'error').length, [alerts]);
+  const deviceAlertCount = useMemo(() => alerts.filter(a => a.source === 'device').length, [alerts]);
 
   return (
     <LinearGradient
       colors={['#1e3a8a', '#3b82f6']}
+      locations={[0, 0.7]}
+      useAngle={true}
+      angle={145}
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>
@@ -44,41 +105,37 @@ export default function AlertsScreen() {
             styles.scrollContent,
             isTablet && styles.tabletScrollContent
           ]}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor="#ffffff"
+              colors={['#ffffff']}
+            />
+          }
         >
           <ResponsiveContainer>
-            <View style={getLayoutStyle()}>
-              <View style={isTablet && isLandscape ? styles.leftColumn : null}>
+            <View style={isLandscapeTablet ? styles.tabletLandscapeLayout : null}>
+              <View style={[
+                isLandscapeTablet ? styles.leftColumn : null,
+                { marginBottom: isLandscapeTablet ? 0 : 16 }
+              ]}>
                 <StatusHeader />
                 <ConnectionStatus isConnected={deviceConnected} />
-                <View style={[
-                  styles.card,
-                  isTablet && styles.tabletCard
-                ]}>
+                <View style={[styles.card, isTablet && styles.tabletCard]}>
                   <View style={styles.headerContainer}>
-                    <Text style={[
-                      styles.sectionTitle,
-                      isTablet && styles.tabletSectionTitle
-                    ]}>
+                    <Text style={[styles.sectionTitle, isTablet && styles.tabletSectionTitle]}>
                       System Alerts
                     </Text>
                     {unreadCount > 0 && (
-                      <View style={[
-                        styles.unreadBadge,
-                        isTablet && styles.tabletUnreadBadge
-                      ]}>
-                        <Text style={[
-                          styles.unreadBadgeText,
-                          isTablet && styles.tabletUnreadBadgeText
-                        ]}>
+                      <View style={[styles.unreadBadge, isTablet && styles.tabletUnreadBadge]}>
+                        <Text style={[styles.unreadBadgeText, isTablet && styles.tabletUnreadBadgeText]}>
                           {unreadCount}
                         </Text>
                       </View>
                     )}
                   </View>
-                  <Text style={[
-                    styles.sectionDescription,
-                    isTablet && styles.tabletSectionDescription
-                  ]}>
+                  <Text style={[styles.sectionDescription, isTablet && styles.tabletSectionDescription]}>
                     Real-time notifications from your AEROSPIN device and app
                   </Text>
                   <AlertsList 
@@ -90,108 +147,68 @@ export default function AlertsScreen() {
                   />
                 </View>
               </View>
-              <View style={isTablet && isLandscape ? styles.rightColumn : null}>
-                {/* Alert Statistics */}
-                <View style={[
-                  styles.statsCard,
-                  isTablet && styles.tabletStatsCard
-                ]}>
-                  <Text style={[
-                    styles.statsTitle,
-                    isTablet && styles.tabletStatsTitle
-                  ]}>
-                    Alert Statistics
-                  </Text>
-                  <View style={[
-                    styles.statsGrid,
-                    isTablet && styles.tabletStatsGrid
-                  ]}>
-                    <View style={[
-                      styles.statItem,
-                      isTablet && styles.tabletStatItem
-                    ]}>
-                      <Text style={[
-                        styles.statValue,
-                        isTablet && styles.tabletStatValue
-                      ]}>
-                        {alerts.length}
+
+              {isLandscapeTablet && (
+                <View style={styles.rightColumn}>
+                  <AlertStatsSection 
+                    alerts={alerts} 
+                    unreadCount={unreadCount} 
+                    isTablet={isTablet} 
+                  />
+                  <View style={[styles.infoCard, isTablet && styles.tabletInfoCard]}>
+                    <Text style={[styles.infoTitle, isTablet && styles.tabletInfoTitle]}>
+                      Alert System Status
+                    </Text>
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
+                        Device Connection:
                       </Text>
                       <Text style={[
-                        styles.statLabel,
-                        isTablet && styles.tabletStatLabel
+                        styles.infoValue,
+                        isTablet && styles.tabletInfoValue,
+                        { color: deviceConnected ? '#22c55e' : '#ef4444' }
                       ]}>
-                        Total
+                        {deviceConnected ? 'Connected' : 'Disconnected'}
                       </Text>
                     </View>
-                    <View style={[
-                      styles.statItem,
-                      isTablet && styles.tabletStatItem
-                    ]}>
-                      <Text style={[
-                        styles.statValue,
-                        isTablet && styles.tabletStatValue
-                      ]}>
-                        {unreadCount}
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
+                        Alert Monitoring:
                       </Text>
                       <Text style={[
-                        styles.statLabel,
-                        isTablet && styles.tabletStatLabel
+                        styles.infoValue,
+                        isTablet && styles.tabletInfoValue,
+                        { color: '#22c55e' }
                       ]}>
-                        Unread
+                        Active
                       </Text>
                     </View>
-                    <View style={[
-                      styles.statItem,
-                      isTablet && styles.tabletStatItem
-                    ]}>
-                      <Text style={[
-                        styles.statValue,
-                        isTablet && styles.tabletStatValue
-                      ]}>
-                        {alerts.filter(a => a.type === 'error').length}
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
+                        Update Frequency:
                       </Text>
-                      <Text style={[
-                        styles.statLabel,
-                        isTablet && styles.tabletStatLabel
-                      ]}>
-                        Errors
-                      </Text>
-                    </View>
-                    <View style={[
-                      styles.statItem,
-                      isTablet && styles.tabletStatItem
-                    ]}>
-                      <Text style={[
-                        styles.statValue,
-                        isTablet && styles.tabletStatValue
-                      ]}>
-                        {alerts.filter(a => a.source === 'device').length}
-                      </Text>
-                      <Text style={[
-                        styles.statLabel,
-                        isTablet && styles.tabletStatLabel
-                      ]}>
-                        Device
+                      <Text style={[styles.infoValue, isTablet && styles.tabletInfoValue]}>
+                        Every 10 seconds
                       </Text>
                     </View>
                   </View>
                 </View>
-                {/* Connection Status Info */}
-                <View style={[
-                  styles.infoCard,
-                  isTablet && styles.tabletInfoCard
-                ]}>
-                  <Text style={[
-                    styles.infoTitle,
-                    isTablet && styles.tabletInfoTitle
-                  ]}>
+              )}
+            </View>
+
+            {!isLandscapeTablet && (
+              <>
+                <AlertStatsSection 
+                  alerts={alerts} 
+                  unreadCount={unreadCount} 
+                  isTablet={isTablet} 
+                />
+                <View style={[styles.infoCard, isTablet && styles.tabletInfoCard]}>
+                  <Text style={[styles.infoTitle, isTablet && styles.tabletInfoTitle]}>
                     Alert System Status
                   </Text>
                   <View style={styles.infoRow}>
-                    <Text style={[
-                      styles.infoLabel,
-                      isTablet && styles.tabletInfoLabel
-                    ]}>
+                    <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
                       Device Connection:
                     </Text>
                     <Text style={[
@@ -203,10 +220,7 @@ export default function AlertsScreen() {
                     </Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={[
-                      styles.infoLabel,
-                      isTablet && styles.tabletInfoLabel
-                    ]}>
+                    <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
                       Alert Monitoring:
                     </Text>
                     <Text style={[
@@ -218,22 +232,16 @@ export default function AlertsScreen() {
                     </Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={[
-                      styles.infoLabel,
-                      isTablet && styles.tabletInfoLabel
-                    ]}>
+                    <Text style={[styles.infoLabel, isTablet && styles.tabletInfoLabel]}>
                       Update Frequency:
                     </Text>
-                    <Text style={[
-                      styles.infoValue,
-                      isTablet && styles.tabletInfoValue
-                    ]}>
+                    <Text style={[styles.infoValue, isTablet && styles.tabletInfoValue]}>
                       Every 10 seconds
                     </Text>
                   </View>
                 </View>
-              </View>
-            </View>
+              </>
+            )}
           </ResponsiveContainer>
         </ScrollView>
       </SafeAreaView>
@@ -272,7 +280,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     elevation: 4,
   },
   tabletCard: {
@@ -289,6 +296,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'Inter-Bold',
     color: '#1e40af',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabletSectionTitle: {
     fontSize: 24,
@@ -310,6 +319,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Bold',
     color: '#ffffff',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabletUnreadBadgeText: {
     fontSize: 14,
@@ -320,6 +331,8 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
     marginBottom: 20,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabletSectionDescription: {
     fontSize: 16,
@@ -330,7 +343,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     elevation: 4,
   },
   tabletStatsCard: {
@@ -343,6 +355,8 @@ const styles = StyleSheet.create({
     color: '#1e40af',
     marginBottom: 16,
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabletStatsTitle: {
     fontSize: 22,
@@ -370,15 +384,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#374151',
     marginBottom: 4,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabletStatValue: {
     fontSize: 28,
     marginBottom: 0,
   },
+  highlightValue: {
+    color: '#ef4444',
+  },
   statLabel: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#6b7280',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabletStatLabel: {
     fontSize: 16,
@@ -401,6 +422,8 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 12,
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabletInfoTitle: {
     fontSize: 20,
@@ -416,6 +439,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#6b7280',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabletInfoLabel: {
     fontSize: 16,
@@ -424,6 +449,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#374151',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabletInfoValue: {
     fontSize: 16,
