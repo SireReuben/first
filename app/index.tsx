@@ -14,32 +14,21 @@ export default function WelcomeScreen() {
   const [logoAnim] = useState(new Animated.Value(0));
   const { isConnected } = useDeviceState();
   const [showManualConnect, setShowManualConnect] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Ensure component is mounted before starting animations
-    const initTimer = setTimeout(() => {
-      setIsInitialized(true);
-      startAnimations();
-    }, 100); // Reduced delay for faster startup
-
-    return () => clearTimeout(initTimer);
-  }, []);
-
-  const startAnimations = () => {
-    // Start welcome animation sequence
+    // Start welcome animation sequence immediately
     Animated.sequence([
       // First animate the logo
       Animated.timing(logoAnim, {
         toValue: 1,
-        duration: 600, // Slightly faster animation
+        duration: 600,
         useNativeDriver: true,
       }),
       // Then animate the rest of the content
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 800, // Faster animation
+          duration: 800,
           useNativeDriver: true,
         }),
         Animated.spring(scaleAnim, {
@@ -50,10 +39,6 @@ export default function WelcomeScreen() {
         }),
       ])
     ]).start();
-  };
-
-  useEffect(() => {
-    if (!isInitialized) return;
 
     // Show manual connect option after appropriate time based on platform
     const delay = Platform.OS === 'web' ? 5000 : 8000;
@@ -64,35 +49,21 @@ export default function WelcomeScreen() {
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [isConnected, isInitialized]);
+  }, [isConnected]);
 
   // Auto-navigate when connected
   useEffect(() => {
-    if (isConnected && isInitialized) {
+    if (isConnected) {
       const timer = setTimeout(() => {
         router.replace('/(tabs)/sessions');
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isConnected, isInitialized]);
+  }, [isConnected]);
 
   const handleManualConnect = () => {
     router.replace('/(tabs)/sessions');
   };
-
-  // Show minimal loading state while initializing
-  if (!isInitialized) {
-    return (
-      <LinearGradient
-        colors={['#1e3a8a', '#3b82f6', '#60a5fa']}
-        style={styles.container}
-      >
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Initializing AEROSPIN...</Text>
-        </View>
-      </LinearGradient>
-    );
-  }
 
   return (
     <LinearGradient
@@ -191,16 +162,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#e0f2fe',
-  },
   content: {
     flex: 1,
     justifyContent: 'space-between',
@@ -263,6 +224,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#ffffff',
     marginBottom: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#e0f2fe',
   },
   manualConnectContainer: {
     alignItems: 'center',

@@ -98,14 +98,14 @@ export function useDeviceState() {
       if (isComponentMounted) {
         checkConnection();
       }
-    }, 2000);
+    }, 3000); // Increased delay for mobile
 
     // Set up periodic connection monitoring with longer intervals for mobile
     const startPeriodicChecks = setTimeout(() => {
       if (isComponentMounted) {
-        connectionCheckInterval = setInterval(checkConnection, 15000); // Check every 15 seconds
+        connectionCheckInterval = setInterval(checkConnection, 20000); // Check every 20 seconds
       }
-    }, 5000);
+    }, 8000);
 
     return () => {
       isComponentMounted = false;
@@ -168,7 +168,7 @@ export function useDeviceState() {
         }
       };
 
-      sessionInterval = setInterval(fetchSessionLog, 10000); // Less frequent updates for mobile
+      sessionInterval = setInterval(fetchSessionLog, 15000); // Less frequent updates for mobile
     }
 
     return () => {
