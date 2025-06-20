@@ -143,7 +143,7 @@ export default function WelcomeScreen() {
     }
     
     if (connectionAttempts > 0) {
-      return `Connection attempts: ${connectionAttempts}. Ensure device is powered on and WiFi is connected to "AEROSPIN CONTROL"`;
+      return `Connection attempts: ${String(connectionAttempts)}. Ensure device is powered on and WiFi is connected to "AEROSPIN CONTROL"`;
     }
     
     return 'Ensure your device WiFi is connected to "AEROSPIN CONTROL" network';

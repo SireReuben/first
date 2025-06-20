@@ -47,7 +47,7 @@ export function ConnectionStatus({ isConnected }: ConnectionStatusProps) {
             <View style={styles.debugRow}>
               <AlertTriangle size={12} color="#f59e0b" />
               <Text style={styles.debugText}>
-                Connection attempts: {connectionAttempts}
+                Connection attempts: {String(connectionAttempts)}
               </Text>
             </View>
           )}
@@ -56,7 +56,7 @@ export function ConnectionStatus({ isConnected }: ConnectionStatusProps) {
             <View style={styles.debugRow}>
               <Wifi size={12} color="#6b7280" />
               <Text style={styles.debugText}>
-                {networkInfo}
+                {String(networkInfo)}
               </Text>
             </View>
           )}
@@ -65,7 +65,7 @@ export function ConnectionStatus({ isConnected }: ConnectionStatusProps) {
             <View style={styles.debugRow}>
               <Circle size={8} color="#6b7280" />
               <Text style={styles.debugText}>
-                Endpoint: {currentEndpoint}
+                Endpoint: {String(currentEndpoint)}
               </Text>
             </View>
           )}
