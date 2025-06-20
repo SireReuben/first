@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
-import { Wifi, MapPin, Settings, AlertTriangle } from 'lucide-react-native';
+import { Wifi, MapPin, Settings, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 import { useNetworkPermissions } from '@/hooks/useNetworkPermissions';
 
 interface NetworkPermissionGuardProps {
