@@ -107,7 +107,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   startButton: {
@@ -135,12 +134,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#ffffff',
     marginLeft: 8,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   secondaryButtonText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#ffffff',
     marginLeft: 6,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   offlineNotice: {
     flexDirection: 'row',
@@ -159,5 +162,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     textAlign: 'center',
     flex: 1,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });

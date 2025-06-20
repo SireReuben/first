@@ -31,7 +31,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     elevation: 4,
   },
   title: {
@@ -39,6 +38,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#1e40af',
     marginBottom: 16,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   item: {
     flexDirection: 'row',
@@ -52,10 +53,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#374151',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   value: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6b7280',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });

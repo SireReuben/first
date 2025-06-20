@@ -63,7 +63,7 @@ export function AlertsList({
       <View style={styles.actionsHeader}>
         <View style={styles.alertCount}>
           <Text style={styles.alertCountText}>
-            {alerts.length} alerts {unreadCount > 0 && `(${unreadCount} unread)`}
+            {alerts.length} alerts{unreadCount > 0 ? ` (${unreadCount} unread)` : ''}
           </Text>
         </View>
         <View style={styles.actionButtons}>
@@ -123,6 +123,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#374151',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -144,6 +146,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#6b7280',
     marginLeft: 4,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   deleteButtonText: {
     color: '#ef4444',
@@ -165,10 +169,14 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginTop: 16,
     marginBottom: 8,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   emptySubtext: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6b7280',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });

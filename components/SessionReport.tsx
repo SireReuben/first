@@ -150,7 +150,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     elevation: 4,
   },
   header: {
@@ -163,6 +162,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'Inter-Bold',
     color: '#1e40af',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   buttonGroup: {
     flexDirection: 'row',
@@ -184,6 +185,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#ffffff',
     marginLeft: 4,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   infoRow: {
     flexDirection: 'row',
@@ -195,11 +198,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#6b7280',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   infoValue: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#374151',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   eventsTitle: {
     fontSize: 16,
@@ -207,6 +214,8 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginTop: 16,
     marginBottom: 12,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   eventsContainer: {
     maxHeight: 200,
@@ -225,12 +234,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#6b7280',
     width: 20,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   eventText: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#374151',
     flex: 1,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   noEventsContainer: {
     alignItems: 'center',
@@ -242,11 +255,15 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 8,
     marginBottom: 4,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   noEventsSubtext: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#9ca3af',
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });

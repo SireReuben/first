@@ -8,6 +8,13 @@ export function SessionRequiredNotice() {
     router.push('/(tabs)/sessions');
   };
 
+  const benefits = [
+    'Ensures safe operation with proper initialization',
+    'Logs all device operations for safety compliance',
+    'Prevents accidental device activation',
+    'Provides structured start/stop procedures'
+  ];
+
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
@@ -30,12 +37,13 @@ export function SessionRequiredNotice() {
       
       <View style={styles.infoBox}>
         <Text style={styles.infoTitle}>Why Sessions?</Text>
-        <Text style={styles.infoText}>
-          • Ensures safe operation with proper initialization{'\n'}
-          • Logs all device operations for safety compliance{'\n'}
-          • Prevents accidental device activation{'\n'}
-          • Provides structured start/stop procedures
-        </Text>
+        <View style={styles.benefitsList}>
+          {benefits.map((benefit, index) => (
+            <Text key={index} style={styles.infoText}>
+              • {benefit}
+            </Text>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -48,7 +56,6 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 16,
     alignItems: 'center',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     elevation: 4,
   },
   iconContainer: {
@@ -60,6 +67,8 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 12,
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   description: {
     fontSize: 16,
@@ -68,6 +77,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   button: {
     flexDirection: 'row',
@@ -83,6 +94,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#ffffff',
     marginLeft: 8,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   infoBox: {
     backgroundColor: '#f8fafc',
@@ -95,11 +108,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#374151',
     marginBottom: 8,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  benefitsList: {
+    gap: 4,
   },
   infoText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6b7280',
     lineHeight: 20,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });
