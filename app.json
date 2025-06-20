@@ -28,7 +28,7 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "single",
+      "output": "static",
       "favicon": "./assets/images/Aerospin-1-300x200.png"
     },
     "plugins": [
