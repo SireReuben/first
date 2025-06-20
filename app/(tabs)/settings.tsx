@@ -35,21 +35,15 @@ export default function SettingsScreen() {
           <ResponsiveContainer>
             <View style={getLayoutStyle()}>
               <View style={isTablet && isLandscape ? styles.leftColumn : null}>
-                <StatusHeader />
-                
-                <SettingsSection 
+                <StatusHeader /><SettingsSection 
                   title="Network Settings"
                   items={[
                     { label: 'WiFi Network', value: 'AEROSPIN CONTROL' },
                     { label: 'Connection Type', value: 'Local Network' },
                     { label: 'Auto-Connect', value: 'Enabled' },
                   ]}
-                />
-
-                <DeviceInfo />
-              </View>
-
-              <View style={isTablet && isLandscape ? styles.rightColumn : null}>
+                /><DeviceInfo />
+              </View><View style={isTablet && isLandscape ? styles.rightColumn : null}>
                 <SettingsSection 
                   title="Application"
                   items={[
@@ -57,9 +51,7 @@ export default function SettingsScreen() {
                     { label: 'Build', value: '2025.01.01' },
                     { label: 'Last Updated', value: 'Today' },
                   ]}
-                />
-
-                <SettingsSection 
+                /><SettingsSection 
                   title="Support"
                   items={[
                     { label: 'Help & Documentation', value: 'Available' },

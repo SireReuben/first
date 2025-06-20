@@ -72,9 +72,7 @@ export default function DashboardScreen() {
             ]}
           >
             <ResponsiveContainer>
-              <StatusHeader />
-              <ConnectionStatus isConnected={isConnected} />
-              <SessionRequiredNotice />
+              <StatusHeader /><ConnectionStatus isConnected={isConnected} /><SessionRequiredNotice />
             </ResponsiveContainer>
           </ScrollView>
         </SafeAreaView>
@@ -106,10 +104,7 @@ export default function DashboardScreen() {
           <ResponsiveContainer>
             <View style={getLayoutStyle()}>
               <View style={isTablet && isLandscape ? styles.leftColumn : null}>
-                <StatusHeader />
-                <ConnectionStatus isConnected={isConnected} />
-                
-                <View style={[
+                <StatusHeader /><ConnectionStatus isConnected={isConnected} /><View style={[
                   styles.statusCard,
                   isTablet && styles.tabletStatusCard
                 ]}>
@@ -197,9 +192,7 @@ export default function DashboardScreen() {
                     </View>
                   </View>
                 </View>
-              </View>
-
-              <View style={isTablet && isLandscape ? styles.rightColumn : null}>
+              </View><View style={isTablet && isLandscape ? styles.rightColumn : null}>
                 <DeviceControls 
                   deviceState={deviceState}
                   onUpdateState={handleUpdateDeviceState}
@@ -207,9 +200,7 @@ export default function DashboardScreen() {
                   onReset={handleResetDevice}
                   onReleaseBrake={handleReleaseBrake}
                   disabled={!isConnected}
-                />
-
-                <View style={[
+                /><View style={[
                   styles.warningCard,
                   isTablet && styles.tabletWarningCard
                 ]}>

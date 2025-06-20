@@ -48,10 +48,7 @@ export default function AlertsScreen() {
           <ResponsiveContainer>
             <View style={getLayoutStyle()}>
               <View style={isTablet && isLandscape ? styles.leftColumn : null}>
-                <StatusHeader />
-                <ConnectionStatus isConnected={deviceConnected} />
-                
-                <View style={[
+                <StatusHeader /><ConnectionStatus isConnected={deviceConnected} /><View style={[
                   styles.card,
                   isTablet && styles.tabletCard
                 ]}>
@@ -76,14 +73,12 @@ export default function AlertsScreen() {
                       </View>
                     )}
                   </View>
-                  
                   <Text style={[
                     styles.sectionDescription,
                     isTablet && styles.tabletSectionDescription
                   ]}>
                     Real-time notifications from your AEROSPIN device and app
                   </Text>
-                  
                   <AlertsList 
                     alerts={alerts}
                     onMarkAsRead={markAsRead}
@@ -92,9 +87,7 @@ export default function AlertsScreen() {
                     onMarkAllAsRead={markAllAsRead}
                   />
                 </View>
-              </View>
-
-              <View style={isTablet && isLandscape ? styles.rightColumn : null}>
+              </View><View style={isTablet && isLandscape ? styles.rightColumn : null}>
                 {/* Alert Statistics */}
                 <View style={[
                   styles.statsCard,
@@ -179,9 +172,7 @@ export default function AlertsScreen() {
                       </Text>
                     </View>
                   </View>
-                </View>
-
-                {/* Connection Status Info */}
+                </View>{/* Connection Status Info */}
                 <View style={[
                   styles.infoCard,
                   isTablet && styles.tabletInfoCard
