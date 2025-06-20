@@ -17,11 +17,11 @@ export default function WelcomeScreen() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Add a small delay to ensure everything is loaded before starting animations
+    // Ensure component is mounted before starting animations
     const initTimer = setTimeout(() => {
       setIsInitialized(true);
       startAnimations();
-    }, 500);
+    }, 100); // Reduced delay for faster startup
 
     return () => clearTimeout(initTimer);
   }, []);
@@ -32,14 +32,14 @@ export default function WelcomeScreen() {
       // First animate the logo
       Animated.timing(logoAnim, {
         toValue: 1,
-        duration: 800,
+        duration: 600, // Slightly faster animation
         useNativeDriver: true,
       }),
       // Then animate the rest of the content
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 800, // Faster animation
           useNativeDriver: true,
         }),
         Animated.spring(scaleAnim, {
@@ -55,12 +55,13 @@ export default function WelcomeScreen() {
   useEffect(() => {
     if (!isInitialized) return;
 
-    // Show manual connect option after 8 seconds if not connected (longer for mobile)
+    // Show manual connect option after appropriate time based on platform
+    const delay = Platform.OS === 'web' ? 5000 : 8000;
     const timer = setTimeout(() => {
       if (!isConnected) {
         setShowManualConnect(true);
       }
-    }, 8000);
+    }, delay);
 
     return () => clearTimeout(timer);
   }, [isConnected, isInitialized]);
@@ -70,7 +71,7 @@ export default function WelcomeScreen() {
     if (isConnected && isInitialized) {
       const timer = setTimeout(() => {
         router.replace('/(tabs)/sessions');
-      }, 2500);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [isConnected, isInitialized]);
@@ -79,6 +80,7 @@ export default function WelcomeScreen() {
     router.replace('/(tabs)/sessions');
   };
 
+  // Show minimal loading state while initializing
   if (!isInitialized) {
     return (
       <LinearGradient
