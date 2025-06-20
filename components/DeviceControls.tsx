@@ -122,7 +122,7 @@ export function DeviceControls({
   const handleEmergencyStop = () => {
     Alert.alert(
       'EMERGENCY STOP',
-      'This will immediately stop all motor operations and set speed to 0. The current brake position will be maintained. Continue?',
+      `This will immediately stop all motor operations and set speed to 0. The current brake position (${deviceState.brake}) will be maintained. Continue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -137,7 +137,7 @@ export function DeviceControls({
   const handleReset = () => {
     Alert.alert(
       'Reset Device',
-      'This will reset the Arduino device, restart all systems, and end the current session. The brake position will be preserved. Continue?',
+      `This will reset the Arduino device, restart all systems, and end the current session. The current brake position (${deviceState.brake}) will be preserved and restored after reset. Continue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -195,6 +195,18 @@ export function DeviceControls({
           <Text style={styles.resetButtonText}>RESET DEVICE</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Brake Position Info */}
+      {deviceState.brake !== 'None' && (
+        <View style={styles.brakeInfoSection}>
+          <Text style={styles.brakeInfoText}>
+            Current brake position: <Text style={styles.brakeInfoValue}>{deviceState.brake}</Text>
+          </Text>
+          <Text style={styles.brakeInfoSubtext}>
+            This position will be preserved during reset and emergency stop operations
+          </Text>
+        </View>
+      )}
       
       {/* Direction Controls */}
       <View style={styles.controlSection}>
@@ -435,6 +447,30 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#ffffff',
     marginLeft: 8,
+  },
+  brakeInfoSection: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+  },
+  brakeInfoText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  brakeInfoValue: {
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
+  },
+  brakeInfoSubtext: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6b7280',
+    fontStyle: 'italic',
   },
   controlSection: {
     marginBottom: 24,

@@ -316,14 +316,14 @@ export function useDeviceState() {
     setPreviousBrakePosition(currentBrake);
 
     if (deviceState.sessionActive) {
-      addSessionEvent('Device reset initiated');
+      addSessionEvent(`Device reset initiated - preserving brake position: ${currentBrake}`);
       await endSession();
     }
 
     // Reset state but preserve brake position
     setDeviceState(prev => ({
       direction: 'None',
-      brake: currentBrake, // Preserve brake position
+      brake: currentBrake, // Preserve brake position during reset
       speed: 0,
       sessionActive: false,
     }));
@@ -332,16 +332,29 @@ export function useDeviceState() {
       try {
         await sendArduinoCommand('/reset', 8000);
         
+        // After reset, restore the brake position
         setTimeout(async () => {
           let reconnectAttempts = 0;
           const maxAttempts = 8;
           
-          const attemptReconnect = async () => {
+          const attemptReconnectAndRestore = async () => {
             try {
               const response = await sendArduinoCommand('/ping', 2000);
               if (response.ok) {
                 setIsConnected(true);
-                addSessionEvent('Device reset completed - reconnected');
+                
+                // Restore brake position after successful reconnection
+                if (currentBrake !== 'None') {
+                  try {
+                    const action = currentBrake.toLowerCase();
+                    await sendArduinoCommand(`/brake?action=${action}&state=on`, 3000);
+                    addSessionEvent(`Device reset completed - brake position restored to: ${currentBrake}`);
+                  } catch (brakeError) {
+                    addSessionEvent(`Device reset completed - failed to restore brake position: ${currentBrake}`);
+                  }
+                } else {
+                  addSessionEvent('Device reset completed - reconnected');
+                }
                 return;
               }
             } catch (error) {
@@ -350,22 +363,22 @@ export function useDeviceState() {
             
             reconnectAttempts++;
             if (reconnectAttempts < maxAttempts) {
-              setTimeout(attemptReconnect, 3000);
+              setTimeout(attemptReconnectAndRestore, 3000);
             } else {
-              addSessionEvent('Device reset completed - manual reconnection required');
+              addSessionEvent(`Device reset completed - manual reconnection required. Brake position preserved locally: ${currentBrake}`);
             }
           };
           
-          attemptReconnect();
+          attemptReconnectAndRestore();
         }, 5000);
         
       } catch (error) {
         console.log('Reset command failed, device may have restarted');
-        addSessionEvent('Reset command sent - device restarting');
+        addSessionEvent(`Reset command sent - device restarting. Brake position preserved: ${currentBrake}`);
         setIsConnected(false);
       }
     } else {
-      addSessionEvent('Device reset (offline mode)');
+      addSessionEvent(`Device reset (offline mode) - brake position preserved: ${currentBrake}`);
     }
 
     setSessionData({
@@ -381,7 +394,7 @@ export function useDeviceState() {
     setPreviousBrakePosition(currentBrake);
 
     if (deviceState.sessionActive) {
-      addSessionEvent('EMERGENCY STOP ACTIVATED');
+      addSessionEvent(`EMERGENCY STOP ACTIVATED - preserving brake position: ${currentBrake}`);
     }
 
     // Emergency stop: set speed to 0, direction to None, but preserve brake position
@@ -400,12 +413,12 @@ export function useDeviceState() {
         await sendArduinoCommand('/direction?state=none', 1500);
         // Don't change brake position during emergency stop
         
-        addSessionEvent('Emergency stop commands sent to device');
+        addSessionEvent(`Emergency stop commands sent to device - brake position maintained: ${currentBrake}`);
       } catch (error) {
-        addSessionEvent('Emergency stop - device communication failed, local stop applied');
+        addSessionEvent(`Emergency stop - device communication failed, local stop applied. Brake position preserved: ${currentBrake}`);
       }
     } else {
-      addSessionEvent('Emergency stop applied (offline mode)');
+      addSessionEvent(`Emergency stop applied (offline mode) - brake position preserved: ${currentBrake}`);
     }
   }, [deviceState, isConnected, sendArduinoCommand, addSessionEvent]);
 
