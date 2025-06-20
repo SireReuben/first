@@ -22,12 +22,20 @@ export function OfflineNotice() {
           To connect to your AEROSPIN device:
         </Text>
         
-        <Text style={styles.stepText}>
-          1. Ensure device is powered on{'\n'}
-          2. Connect to "AEROSPIN CONTROL" WiFi network{'\n'}
-          3. Wait for automatic connection{'\n'}
-          4. Session controls will be enabled when connected
-        </Text>
+        <View>
+          <Text style={styles.stepText}>
+            1. Ensure device is powered on
+          </Text>
+          <Text style={styles.stepText}>
+            2. Connect to "AEROSPIN CONTROL" WiFi network
+          </Text>
+          <Text style={styles.stepText}>
+            3. Wait for automatic connection
+          </Text>
+          <Text style={styles.stepText}>
+            4. Session controls will be enabled when connected
+          </Text>
+        </View>
       </View>
     </View>
   );
