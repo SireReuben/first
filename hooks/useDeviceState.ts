@@ -97,7 +97,7 @@ export function useDeviceState() {
       }
 
       // Try to detect if we're on a network that might have the Arduino
-     try {
+      try {
   if (ipAddress && ipAddress.includes('.')) {
     const ipParts = ipAddress.split('.');
 
