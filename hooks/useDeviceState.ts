@@ -97,7 +97,7 @@ export function useDeviceState() {
       }
 
       // Try to detect if we're on a network that might have the Arduino
-try {
+     try {
   if (ipAddress && ipAddress.includes('.')) {
     const ipParts = ipAddress.split('.');
 
@@ -120,7 +120,7 @@ try {
   setNetworkInfo('Network detection failed - using fallback');
   return null;
 }
-
+  }, []);
 
   // Enhanced connection check with better error handling and timeout management
   const checkConnection = useCallback(async (retryCount = 0): Promise<boolean> => {
