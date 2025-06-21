@@ -97,8 +97,9 @@ export function useDeviceState() {
       }
 
       // Try to detect if we're on a network that might have the Arduino
-     if (ipAddress && ipAddress.includes('.')) {
+      if (ipAddress && ipAddress.includes('.')) {
   const ipParts = ipAddress.split('.');
+  
   if (ipParts.length === 4) {
     const networkBase = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.`;
     const possibleArduinoIP = `http://${networkBase}1`;
@@ -106,6 +107,7 @@ export function useDeviceState() {
     return possibleArduinoIP;
   } else {
     console.warn('IP address has an unexpected format:', ipAddress);
+  }
 } else {
   console.warn('IP address is undefined or invalid:', ipAddress);
 }
