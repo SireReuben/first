@@ -97,30 +97,30 @@ export function useDeviceState() {
       }
 
       // Try to detect if we're on a network that might have the Arduino
-      if (ipAddress && ipAddress.includes('.')) {
-  const ipParts = ipAddress.split('.');
-  
-  if (ipParts.length === 4) {
-    const networkBase = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.`;
-    const possibleArduinoIP = `http://${networkBase}1`;
-    console.log('Trying alternative Arduino IP:', possibleArduinoIP);
-    return possibleArduinoIP;
+try {
+  if (ipAddress && ipAddress.includes('.')) {
+    const ipParts = ipAddress.split('.');
+
+    if (ipParts.length === 4) {
+      const networkBase = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.`;
+      const possibleArduinoIP = `http://${networkBase}1`;
+      console.log('Trying alternative Arduino IP:', possibleArduinoIP);
+      return possibleArduinoIP;
+    } else {
+      console.warn('IP address has an unexpected format:', ipAddress);
+    }
   } else {
-    console.warn('IP address has an unexpected format:', ipAddress);
+    console.warn('IP address is undefined or invalid:', ipAddress);
   }
-} else {
-  console.warn('IP address is undefined or invalid:', ipAddress);
+
+  setNetworkInfo(`Not on Arduino network. IP: ${ipAddress}`);
+  return null;
+} catch (error) {
+  console.log('Network detection error:', error);
+  setNetworkInfo('Network detection failed - using fallback');
+  return null;
 }
 
-
-      setNetworkInfo(`Not on Arduino network. IP: ${ipAddress}`);
-      return null;
-    } catch (error) {
-      console.log('Network detection error:', error);
-      setNetworkInfo('Network detection failed - using fallback');
-      return null;
-    }
-  }, []);
 
   // Enhanced connection check with better error handling and timeout management
   const checkConnection = useCallback(async (retryCount = 0): Promise<boolean> => {
